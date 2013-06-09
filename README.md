@@ -1,6 +1,7 @@
 # Bits
 
-TODO: Write a gem description
+Bits is a meta package manager.
+It will maintain relationship between packages from various package managers.
 
 ## Installation
 
@@ -18,7 +19,30 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+This will work by specifying package manager neutral manifests for each package
+on each provided platform (pip, gem, apt, yum, portage).
+
+  # package atom
+  package 'ruby-json'
+  # package requires compilation.
+  native true
+
+  provide :apt,
+    :package_name => 'ruby-json',
+
+  provide :gem,
+    :package_name => 'json',
+    :compiled => false
+
+This will allow the ruby-json package from being installed either using gem, or
+using apt depending on what the situation requires.
+
+Bits will then hook into all required package managers available in order to
+satisfy any specified dependency.
+
+These manifests will be hosted and maintained centrally.
+
+More information coming soon.
 
 ## Contributing
 
