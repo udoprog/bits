@@ -6,6 +6,14 @@
 #include "PackageVersion.h"
 #include "Package.h"
 
+PackageVersion *to_package_version(pkgCache::VerIterator iterator)
+{
+  std::string version(iterator.VerStr());
+  std::string arch(iterator.Arch());
+  std::string section(iterator.Section());
+  return new PackageVersion(version, arch, section);
+}
+
 Rice::Array Apt::Cache::policy(std::string name)
 {
   Rice::Array result;
@@ -27,16 +35,23 @@ Rice::Array Apt::Cache::policy(std::string name)
   {
     std::string full_name = Pkg.FullName(true);
     Rice::Object current_version;
+    Rice::Object candidate_version;
 
     if (Pkg->CurrentVer != 0) {
-      pkgCache::VerIterator version_iterator = Pkg.CurrentVer();
-      std::string version(version_iterator.VerStr());
-      std::string arch(version_iterator.Arch());
-      std::string section(version_iterator.Section());
-      current_version = to_ruby(new PackageVersion(version, arch, section));
+      pkgCache::VerIterator current = Pkg.CurrentVer();
+      current_version = to_ruby(to_package_version(current));
     }
 
-    Apt::Package *package = new Apt::Package(full_name, current_version);
+    pkgCache::VerIterator candidate = Plcy->GetCandidateVer(Pkg);
+
+    if (candidate.end() != true) {
+      candidate_version = to_ruby(to_package_version(candidate));
+    }
+
+    Apt::Package *package = new Apt::Package(
+        full_name, current_version, candidate_version
+    );
+
     result.push(to_ruby(package));
   }
 

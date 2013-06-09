@@ -5,9 +5,14 @@
 #include <rice/Constructor.hpp>
 
 namespace Apt {
-  Package::Package(std::string name, Rice::Object current_version)
+  Package::Package(
+    std::string name,
+    Rice::Object current_version,
+    Rice::Object candidate_version
+  )
     : name_(name)
     , current_version_(current_version)
+    , candidate_version_(candidate_version)
   {
   }
 
@@ -22,6 +27,11 @@ namespace Apt {
   Rice::Object Package::current_version()
   {
     return current_version_;
+  }
+
+  Rice::Object Package::candidate_version()
+  {
+    return candidate_version_;
   }
 
   std::string Package::to_s()

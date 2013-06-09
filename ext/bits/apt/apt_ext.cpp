@@ -9,14 +9,28 @@
 #include "Package.h"
 
 
+namespace Apt {
+  bool initialize()
+  {
+    if (!pkgInitConfig(*_config)) {
+      return false;
+    }
+
+    if (!pkgInitSystem(*_config, _system)) {
+      return false;
+    }
+
+    return true;
+  }
+} /* Apt */
+
+
 extern "C"
 void Init_apt_ext()
 {
-  if (pkgInitConfig(*_config) == false || pkgInitSystem(*_config, _system) == false) {
-    return;
-  }
-
-  Rice::Module rb_mApt = Rice::define_module("Apt");
+  Rice::Module rb_mApt = Rice::define_module("Apt")
+    .define_singleton_method("initialize", &Apt::initialize)
+  ;
 
   Init_Apt_Cache(rb_mApt);
   Init_Apt_Package(rb_mApt);

@@ -8,14 +8,20 @@
 namespace Apt {
   class Package {
   public:
-    Package(std::string name, Rice::Object current_version);
+    Package(
+      std::string name,
+      Rice::Object current_version,
+      Rice::Object candidate_version
+    );
     ~Package();
     std::string name();
     Rice::Object current_version();
+    Rice::Object candidate_version();
     std::string to_s();
   private:
     std::string name_;
     Rice::Object current_version_;
+    Rice::Object candidate_version_;
   };
 } /* Apt */
 
