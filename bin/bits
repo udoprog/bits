@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+
+if __FILE__ == $0
+    lib = File.expand_path File.join('..', '..', 'lib'), $0
+    $:.insert 0, lib if File.file? File.join(lib, 'bits.rb')
+    $:.insert 0, File.expand_path(File.join('..', '..'), $0)
+end
+
+require 'bits'
+exit Bits::main(ARGV)
