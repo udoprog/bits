@@ -2,4 +2,5 @@ provide :pip,
   :atom => 'setuptools'
 
 provide :apt,
-  :atom => 'python-setuptools'
+  :atom => 'python-setuptools',
+  :compiled => true

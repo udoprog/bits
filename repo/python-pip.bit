@@ -1,0 +1,6 @@
+provide :pip,
+  :atom => 'pip'
+
+provide :apt,
+  :atom => 'python-pip',
+  :compiled => true

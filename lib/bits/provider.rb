@@ -66,5 +66,9 @@ module Bits
     def install_package(package)
       raise "not implemented: install_package"
     end
+
+    def remove_package(package)
+      raise "not implemented: remove_package"
+    end
   end
 end

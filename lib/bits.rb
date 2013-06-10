@@ -7,12 +7,11 @@ require 'bits/package'
 require 'bits/repository'
 
 require 'bits/commands/install'
+require 'bits/commands/remove'
 
 module Bits
   def self.parse_options(args)
-    ns = {
-      :providers => setup_providers,
-    }
+    ns = {}
 
     subtext = <<HELP
     Commonly used command are:
@@ -53,6 +52,11 @@ HELP
     command = subcommands[command]
     command.parser.order!
 
+    providers = setup_providers ns
+    backend = setup_backend ns
+
+    ns[:repository] = Bits::Repository.new(providers, backend)
+
     return ARGV, command
   end
 
@@ -65,7 +69,7 @@ HELP
 
   # Initialize all available providers and return an array containing an
   # instance of them.
-  def self.setup_providers
+  def self.setup_providers(ns)
     providers = Hash.new
 
     Provider.providers.each do |p|
@@ -74,6 +78,10 @@ HELP
     end
 
     return providers
+  end
+
+  def self.setup_backend(ns)
+    LocalBackend.new('./repo')
   end
 
   def self.main(args)

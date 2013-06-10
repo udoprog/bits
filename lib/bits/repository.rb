@@ -8,8 +8,8 @@ module Bits
     end
 
     # Used inside bit declaration.
-    def provide(provider_id, criteria={})
-      @provider_params[provider_id] = criteria
+    def provide(provider_id, params={})
+      @provider_params[provider_id] = params
     end
 
     def get_provider_params
@@ -41,7 +41,7 @@ module Bits
       @provider_params.keys
     end
 
-    def criteria(provider_id)
+    def params(provider_id)
       p = @provider_params[provider_id]
 
       return nil if p.nil?
@@ -59,20 +59,39 @@ module Bits
   end
 
   class ProvidedPackage
-    attr_accessor :provider, :package, :criteria
-
-    def initialize(provider, package, criteria)
-      @provider = provider
-      @package = package
+    def initialize(packages, criteria)
+      @packages = packages
       @criteria = criteria
     end
 
+    def matches_criteria?(params)
+      @criteria.all?{|key, value| params[key] == value}
+    end
+
     def install
-      @provider.install_package @package
+      @packages.each do |provider, package, params|
+        next unless matches_criteria? params
+        provider.install_package package
+        break
+      end
+    end
+
+    def remove
+      @packages.each do |provider, package, params|
+        provider.remove_package package
+      end
     end
 
     def installed?
-      not @package.installed.nil?
+      @packages.any?{|provider, package, params|
+        not package.installed.nil?
+      }
+    end
+
+    def installed
+      @packages.select{|provider, package, params|
+        not package.installed.nil?
+      }
     end
   end
 
@@ -84,38 +103,49 @@ module Bits
       @backend = backend
     end
 
-    def find_packages(atom)
+    def get_provider(provider_id)
+      @providers[provider_id]
+    end
+
+    def iterate_packages(atom)
       bit = load_bit atom
 
-      packages = []
-
       bit.provider_ids.each do |provider_id|
-        provider = @providers[provider_id]
+        provider = get_provider provider_id
 
-        criteria = bit.criteria provider_id
+        if provider.nil? then
+          log.debug "No such provider: #{provider_id}"
+          next
+        end
 
-        raise "No such provider: #{provider_id}" if provider.nil?
+        params = bit.params provider_id
 
+        yield [provider, params]
+      end
+    end
+
+    def find_package(atom, criteria={})
+      all_packages = []
+      match = nil
+
+      iterate_packages(atom) do |provider, params|
         begin
-          package = provider.get_package criteria[:atom]
+          package = provider.get_package(params[:atom])
         rescue MissingPackage
           next
         end
 
-        packages << ProvidedPackage.new(provider, package, criteria)
+        all_packages << [provider, package, params]
+
+        next unless match.nil?
       end
 
-      packages
-    end
-
-    def find_package(atom, criteria={})
-      find_packages(atom).each do |package|
-        next unless criteria.each.all?{|key, value| package.criteria[key] == value}
-        return package
+      if all_packages.empty?
+        log.warn "Could not find atom '#{atom}' with criteria #{criteria.inspect}"
+        raise MissingProvidedPackage.new atom
       end
 
-      log.warn "Could not find atom '#{atom}' with criteria #{criteria.inspect}"
-      raise MissingProvidedPackage.new atom
+      return ProvidedPackage.new all_packages, criteria
     end
 
     def load_bit(atom)

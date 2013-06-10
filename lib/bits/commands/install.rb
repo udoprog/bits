@@ -28,16 +28,18 @@ module Bits
 
       atom = args[0]
 
+      repository = @ns[:repository]
+
       params = {}
       params[:compiled] = @ns[:compiled] if @ns.has_key? :compiled
 
-      backend = LocalBackend.new './repo'
-      repository = Bits::Repository.new @ns[:providers], backend
-
       p = repository.find_package atom, params
 
-      if p.installed?
-        log.info "Already installed '#{p.package.atom}'"
+      installed = p.installed
+
+      unless installed.empty?
+        providers = installed.map{|pvd, pkg, crit| pvd.id}.join(', ')
+        log.info "Already installed '#{atom}' using provider(s): #{providers}"
         return 0
       end
 

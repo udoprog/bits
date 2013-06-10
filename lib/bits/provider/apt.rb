@@ -1,6 +1,7 @@
 require 'bits/provider'
 require 'bits/package'
 require 'bits/logging'
+require 'bits/spawn'
 
 HAS_APT_NATIVE_EXT = begin
   require 'bits/apt_ext'
@@ -12,6 +13,8 @@ end
 module Bits
   class AptProvider < Provider
     include Bits::Logging
+
+    APT_GET = 'apt-get'
 
     provider_id :apt
     provider_doc "Provides interface for Debian APT"
@@ -46,6 +49,16 @@ module Bits
       candidate = p.candidate.version if p.candidate
 
       return Bits::Package.new(p.name, current, candidate)
+    end
+
+    def install_package(package)
+      exit_code = Bits.spawn [APT_GET, 'install', package.atom]
+      raise "Could not install package '#{package.atom}'" unless exit_code == 0
+    end
+
+    def remove_package(package)
+      exit_code = Bits.spawn [APT_GET, 'remove', package.atom]
+      raise "Could not remove package '#{package.atom}'" unless exit_code == 0
     end
 
     def to_s

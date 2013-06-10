@@ -9,6 +9,7 @@ module Bits
   class PipProvider < Provider
     include Bits::Logging
 
+    PIP = 'pip'
     PYPI = 'https://pypi.python.org/pypi'
     VERSION_REGEXP = /^Version: (.+)$/
 
@@ -18,12 +19,9 @@ module Bits
     def self.initialize!
       begin
         exit_code = Bits.spawn ['pip', '--version']
-        log.debug "PIP command available"
-        true
       rescue Errno::ENOENT
         log.debug "PIP command not available"
-        false
-      rescue
+        return false
       end
 
       if exit_code != 0 then
@@ -31,6 +29,7 @@ module Bits
         return false
       end
 
+      log.debug "PIP command available"
       true
     end
 
@@ -66,7 +65,13 @@ module Bits
     end
 
     def install_package(package)
-      puts "install #{package}"
+      exit_code = Bits.spawn [PIP, 'install', package.atom]
+      raise "Could not install package '#{package.atom}'" unless exit_code == 0
+    end
+
+    def remove_package(package)
+      exit_code = Bits.spawn [PIP, 'uninstall', package.atom]
+      raise "Could not remove package '#{package.atom}'" unless exit_code == 0
     end
 
     def to_s
