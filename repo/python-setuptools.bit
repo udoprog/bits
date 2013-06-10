@@ -1,5 +1,3 @@
-package 'python-setuptools'
-
 provide :pip,
   :atom => 'setuptools'
 

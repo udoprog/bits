@@ -2,20 +2,58 @@ require 'optparse'
 
 require 'bits/provider/pip'
 require 'bits/provider/apt'
+require 'bits/backend/local'
 require 'bits/package'
 require 'bits/repository'
 
+require 'bits/commands/install'
+
 module Bits
   def self.parse_options(args)
-    params = Hash.new
+    ns = {
+      :providers => setup_providers,
+    }
 
-    opts = OptionParser.new do |options|
-      options.banner = 'Usage: bits [options]'
+    subtext = <<HELP
+    Commonly used command are:
+      install : Install bits.
+
+    See 'bits <command> --help' for more information on a specific command.
+HELP
+
+    global = OptionParser.new do |opts|
+      opts.banner = "Usage: bits <command> [options]"
+
+      opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
+        ns[:verbose] = v
+      end
+
+      opts.separator ""
+      opts.separator subtext
     end
 
-    arguments = opts.parse! args
+    subcommands = {}
+    Bits::Command.register(subcommands, ns)
 
-    return params, arguments
+    global.order!
+    command = ARGV.shift
+
+    if command.nil? then
+      puts global.help
+      exit 0
+    end
+
+    command = command.to_sym
+
+    unless subcommands.has_key?(command) then
+      puts global.help
+      exit 0
+    end
+
+    command = subcommands[command]
+    command.parser.order!
+
+    return ARGV, command
   end
 
   def self.setup_logging
@@ -41,16 +79,9 @@ module Bits
   def self.main(args)
     @log = setup_logging
 
-    providers = setup_providers
+    args, command = parse_options(args)
 
-    params, arguments = parse_options(args).inspect
-
-    repository = Bits::Repository.new providers, './repo'
-
-    p = repository.find_package 'python-setuptools', :compiled => false
-
-    puts "#{p.provider.id}: #{p.package} #{p.provider} #{p.params.inspect}"
-
+    command.run args
     return 0
   end
 end

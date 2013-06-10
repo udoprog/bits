@@ -65,6 +65,10 @@ module Bits
       return Bits::Package.new(package_atom, current, candidate)
     end
 
+    def install_package(package)
+      puts "install #{package}"
+    end
+
     def to_s
       "<PipProvider>"
     end

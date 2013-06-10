@@ -1,22 +1,15 @@
+require 'bits/logging'
+
 module Bits
   # Class used to manage state of a bit declaration file.
   class BitDeclaration
     def initialize
-      @package = nil
       @provider_params = {}
     end
 
-    def package(package)
-      @package = package
-    end
-
     # Used inside bit declaration.
-    def provide(provider_id, params={})
-      @provider_params[provider_id] = params
-    end
-
-    def get_package
-      @package
+    def provide(provider_id, criteria={})
+      @provider_params[provider_id] = criteria
     end
 
     def get_provider_params
@@ -30,17 +23,16 @@ module Bits
     def self.eval(path)
       decl = self.new
       decl.eval!(path)
-      raise "'package' declaration must be specified" if decl.get_package.nil?
       decl
     end
   end
 
   # Class used to manage a single bit.
   class Bit
-    attr_accessor :package, :path
+    attr_accessor :atom, :path
 
-    def initialize(package, provider_params)
-      @package = package
+    def initialize(atom, provider_params)
+      @atom = atom
       @provider_params = provider_params
     end
 
@@ -49,89 +41,86 @@ module Bits
       @provider_params.keys
     end
 
-    def params(provider_id)
+    def criteria(provider_id)
       p = @provider_params[provider_id]
 
       return nil if p.nil?
 
       {
-        :atom => (p[:atom] || @package),
+        :atom => (p[:atom] || @atom),
         :compiled => (p[:compiled] || false),
       }
     end
 
-    def self.eval(path)
+    def self.eval(path, atom)
       decl = BitDeclaration.eval path
-      self.new decl.get_package, decl.get_provider_params
+      self.new atom, decl.get_provider_params
     end
   end
 
   class ProvidedPackage
-    attr_accessor :provider, :package, :params
+    attr_accessor :provider, :package, :criteria
 
-    def initialize(provider, package, params)
+    def initialize(provider, package, criteria)
       @provider = provider
       @package = package
-      @params = params
+      @criteria = criteria
+    end
+
+    def install
+      @provider.install_package @package
+    end
+
+    def installed?
+      not @package.installed.nil?
     end
   end
 
   class Repository
-    def initialize(providers, path)
-      @providers = providers
-      @bits = {}
+    include Bits::Logging
 
-      iterate_repository(path) do |bit|
-        @bits[bit.package] = bit
-      end
+    def initialize(providers, backend)
+      @providers = providers
+      @backend = backend
     end
 
     def find_packages(atom)
-      bit = @bits[atom]
-
-      raise MissingBit.new atom if bit.nil?
+      bit = load_bit atom
 
       packages = []
 
       bit.provider_ids.each do |provider_id|
         provider = @providers[provider_id]
 
-        params = bit.params provider_id
+        criteria = bit.criteria provider_id
 
         raise "No such provider: #{provider_id}" if provider.nil?
 
         begin
-          package = provider.get_package params[:atom]
+          package = provider.get_package criteria[:atom]
         rescue MissingPackage
           next
         end
 
-        packages << ProvidedPackage.new(provider, package, params)
+        packages << ProvidedPackage.new(provider, package, criteria)
       end
 
       packages
     end
 
-    def find_package(atom, params={})
+    def find_package(atom, criteria={})
       find_packages(atom).each do |package|
-        next unless params.each.all?{|key, value| package.params[key] == value}
+        next unless criteria.each.all?{|key, value| package.criteria[key] == value}
         return package
       end
 
+      log.warn "Could not find atom '#{atom}' with criteria #{criteria.inspect}"
       raise MissingProvidedPackage.new atom
     end
 
-    def iterate_repository(path)
-      return unless block_given?
-
-      Dir.foreach(path) do |name|
-        next if name.start_with?('.')
-        next unless name.end_with?('.bit')
-
-        bit = Bit.eval File.join(path, name)
-
-        yield bit
-      end
+    def load_bit(atom)
+      path = @backend.fetch(atom)
+      Bit.eval path, atom
     end
   end
 end
