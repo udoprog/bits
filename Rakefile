@@ -9,21 +9,26 @@ EXTENSIONS = Dir.glob("ext/#{NAME}/*").select{|p| File.directory? p}
 
 EXTENSIONS.each do |path|
   name = File.basename(path)
-  target = "lib/#{NAME}/#{name}_ext.so"
-  dependencies = Dir.glob("#{path}/*.{cpp,h}")
+  ext_path = String.new(path)
+  path.slice! 0, 4
+  target = "lib/#{path}/#{name}_ext.so"
+  target_dir = File.dirname(target)
+
+  dependencies = Dir.glob("#{ext_path}/*.{cpp,h}")
 
   # rule to build the extension: this says
   # that the extension should be rebuilt
   # after any change to the files in ext
   file target => dependencies do
-    Dir.chdir(path) do
+    Dir.chdir(ext_path) do
       # this does essentially the same thing
       # as what RubyGems does
       ruby "extconf.rb"
       sh "make"
     end
 
-    cp "#{path}/#{name}_ext.so", target
+    mkdir target_dir
+    cp File.join(ext_path, "#{name}_ext.so"), target
   end
 
   # make the :test task depend on the shared
