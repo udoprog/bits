@@ -35,15 +35,21 @@ module Bits
 
       p = repository.find_package atom, params
 
-      installed = p.installed
+      depends = repository.check_dependencies p
+      depends[atom] = p
 
-      unless installed.empty?
-        providers = installed.map{|pvd, pkg, crit| pvd.id}.join(', ')
-        log.info "Already installed '#{atom}' using provider(s): #{providers}"
-        return 0
+      depends.each do |atom, p|
+        installed = p.installed
+
+        unless installed.empty?
+          providers = installed.map{|ppp| ppp.provider.id}.join(', ')
+          log.info "Already installed '#{atom}' using provider(s): #{providers}"
+          next
+        end
+
+        p.install
       end
 
-      p.install
       return 0
     end
   end

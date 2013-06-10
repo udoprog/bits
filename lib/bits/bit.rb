@@ -1,7 +1,7 @@
 module Bits
   # Class containing data for a single bit.
   class Bit
-    attr_accessor :atom
+    attr_accessor :atom, :dependencies
 
     def initialize(atom, provide_params, dependencies)
       @atom = atom

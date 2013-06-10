@@ -4,6 +4,16 @@ require 'bits/bit'
 require 'bits/package_proxy'
 
 module Bits
+  class PPP
+    attr_accessor :package, :provider, :params
+
+    def initialize(package, provider, params)
+      @package = package
+      @provider = provider
+      @params = params
+    end
+  end
+
   class Repository
     include Bits::Logging
 
@@ -12,6 +22,27 @@ module Bits
     def initialize(providers, backend)
       @providers = providers
       @backend = backend
+    end
+
+    def check_dependencies(package_proxy)
+      package_proxies = {}
+
+      dependencies = package_proxy.dependencies
+
+      while not dependencies.empty?
+        more_dependencies = {}
+
+        dependencies.each do |atom, params|
+          next if package_proxies.has_key? atom
+          proxy = find_package(atom, params)
+          package_proxies[atom] = proxy
+          more_dependencies.merge! proxy.dependencies
+        end
+
+        dependencies = more_dependencies
+      end
+
+      package_proxies
     end
 
     def find_package(atom, criteria={})
@@ -24,7 +55,7 @@ module Bits
           next
         end
 
-        all_packages << [provider, package, params]
+        all_packages << PPP.new(package, provider, params)
       end
 
       if all_packages.empty?
