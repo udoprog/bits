@@ -10,88 +10,94 @@ require 'bits/commands/install'
 require 'bits/commands/remove'
 
 module Bits
-  def self.parse_options(args)
-    ns = {}
+  class << self
+    def parse_options(args)
+      ns = {}
 
-    subtext = <<HELP
-    Commonly used command are:
-      install : Install packages
-      remove : Remove packages
+      subtext = <<HELP
+Commonly used command are:
+  install : Install packages
+  remove : Remove packages
 
-    See 'bits <command> --help' for more information on a specific command.
+See 'bits <command> --help' for more information on a specific command.
 HELP
 
-    global = OptionParser.new do |opts|
-      opts.banner = "Usage: bits <command> [options]"
+      global = OptionParser.new do |opts|
+        opts.banner = "Usage: bits <command> [options]"
 
-      opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
-        ns[:verbose] = v
+        opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
+          ns[:verbose] = v
+        end
+
+        opts.on("-d", "--debug", "Enable debug logging") do |v|
+          @log.level = Log4r::DEBUG
+        end
+
+        opts.separator ""
+        opts.separator subtext
       end
 
-      opts.separator ""
-      opts.separator subtext
+      subcommands = {}
+      Bits::Command.register(subcommands, ns)
+
+      global.order!
+      command = ARGV.shift
+
+      if command.nil? then
+        puts global.help
+        exit 0
+      end
+
+      command = command.to_sym
+
+      unless subcommands.has_key?(command) then
+        puts global.help
+        exit 0
+      end
+
+      command = subcommands[command]
+      command.parser.order!
+
+      providers = setup_providers ns
+      backend = setup_backend ns
+
+      ns[:repository] = Bits::Repository.new(providers, backend)
+
+      return ARGV, command
     end
 
-    subcommands = {}
-    Bits::Command.register(subcommands, ns)
-
-    global.order!
-    command = ARGV.shift
-
-    if command.nil? then
-      puts global.help
-      exit 0
+    def setup_logging
+      log = Log4r::Logger.new 'Bits'
+      log.outputters << Log4r::Outputter.stdout
+      log.level =  Log4r::INFO
+      log
     end
 
-    command = command.to_sym
+    # Initialize all available providers and return an array containing an
+    # instance of them.
+    def setup_providers(ns)
+      providers = Hash.new
 
-    unless subcommands.has_key?(command) then
-      puts global.help
-      exit 0
+      Provider.providers.each do |p|
+        next unless p.initialize!
+        providers[p.id] = p.new
+      end
+
+      return providers
     end
 
-    command = subcommands[command]
-    command.parser.order!
-
-    providers = setup_providers ns
-    backend = setup_backend ns
-
-    ns[:repository] = Bits::Repository.new(providers, backend)
-
-    return ARGV, command
-  end
-
-  def self.setup_logging
-    log = Log4r::Logger.new 'Bits'
-    log.outputters << Log4r::Outputter.stdout
-    log.level =  Log4r::DEBUG
-    log
-  end
-
-  # Initialize all available providers and return an array containing an
-  # instance of them.
-  def self.setup_providers(ns)
-    providers = Hash.new
-
-    Provider.providers.each do |p|
-      next unless p.initialize!
-      providers[p.id] = p.new
+    def setup_backend(ns)
+      LocalBackend.new '/usr/lib/bits'
     end
 
-    return providers
-  end
+    def main(args)
+      @log = setup_logging
 
-  def self.setup_backend(ns)
-    LocalBackend.new '/usr/lib/bits'
-  end
+      args, command = parse_options(args)
 
-  def self.main(args)
-    @log = setup_logging
-
-    args, command = parse_options(args)
-
-    command.run args
-    return 0
+      command.run args
+      return 0
+    end
   end
 end
 
