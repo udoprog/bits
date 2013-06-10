@@ -16,6 +16,7 @@ module Bits
     subtext = <<HELP
     Commonly used command are:
       install : Install bits.
+      remove : Remove bits.
 
     See 'bits <command> --help' for more information on a specific command.
 HELP

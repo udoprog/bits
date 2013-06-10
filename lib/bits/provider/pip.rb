@@ -18,7 +18,7 @@ module Bits
 
     def self.initialize!
       begin
-        exit_code = Bits.spawn ['pip', '--version']
+        exit_code = Bits.spawn ['pip', '--version'], :stdout => NULL
       rescue Errno::ENOENT
         log.debug "PIP command not available"
         return false
