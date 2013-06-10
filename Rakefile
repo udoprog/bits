@@ -3,9 +3,7 @@ require "bundler/gem_tasks"
 require 'rake/clean'
 require 'rspec/core/rake_task'
 
-NAME = 'bits'
-
-EXTENSIONS = Dir.glob("ext/#{NAME}/*").select{|p| File.directory? p}
+EXTENSIONS = Dir.glob("ext/*").select{|p| File.directory? p}
 
 EXTENSIONS.each do |path|
   name = File.basename(path)

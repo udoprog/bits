@@ -4,7 +4,7 @@ require 'bits/logging'
 require 'bits/spawn'
 
 HAS_APT_NATIVE_EXT = begin
-  require 'bits/apt/apt_ext'
+  require 'apt/apt_ext'
   true
 rescue LoadError
   false
