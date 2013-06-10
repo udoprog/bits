@@ -1,3 +1,5 @@
+depends 'python'
+
 provide :pip,
   :atom => 'pip'
 
