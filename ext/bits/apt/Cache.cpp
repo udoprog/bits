@@ -6,12 +6,12 @@
 #include "PackageVersion.h"
 #include "Package.h"
 
-PackageVersion *to_package_version(pkgCache::VerIterator iterator)
+Apt::PackageVersion *to_package_version(pkgCache::VerIterator iterator)
 {
   std::string version(iterator.VerStr());
   std::string arch(iterator.Arch());
   std::string section(iterator.Section());
-  return new PackageVersion(version, arch, section);
+  return new Apt::PackageVersion(version, arch, section);
 }
 
 Rice::Array Apt::Cache::policy(std::string name)

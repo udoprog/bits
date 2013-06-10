@@ -1,11 +1,15 @@
 module Bits
   class Package
-    attr_reader :name, :installed_version, :candidate_version
+    attr_reader :atom, :installed, :candidate
 
-    def initialize(name, installed_version, candidate_version)
-      @name = name
-      @installed_version = installed_version
-      @candidate_version = candidate_version
+    def initialize(atom, installed, candidate)
+      @atom = atom
+      @installed = installed
+      @candidate = candidate
+    end
+
+    def to_s
+      "<Package atom=#{@atom} installed=#{@installed} candidate=#{@candidate}>"
     end
   end
 end

@@ -2,6 +2,8 @@ require 'optparse'
 
 require 'bits/provider/pip'
 require 'bits/provider/apt'
+require 'bits/package'
+require 'bits/repository'
 
 module Bits
   def self.parse_options(args)
@@ -14,6 +16,13 @@ module Bits
     arguments = opts.parse! args
 
     return params, arguments
+  end
+
+  def self.setup_logging
+    log = Log4r::Logger.new 'Bits'
+    log.outputters << Log4r::Outputter.stdout
+    log.level =  Log4r::DEBUG
+    log
   end
 
   # Initialize all available providers and return an array containing an
@@ -30,27 +39,17 @@ module Bits
   end
 
   def self.main(args)
+    @log = setup_logging
+
     providers = setup_providers
 
     params, arguments = parse_options(args).inspect
 
-    package_name = 'python-setuptools'
+    repository = Bits::Repository.new providers, './repo'
 
-    providers.each do |id, p|
-      package = p.get_installed package_name
+    p = repository.find_package 'python-setuptools', :compiled => false
 
-      unless package
-        puts "#{p.id}: Package not available '#{package_name}'"
-        next
-      end
-
-      unless package
-        puts "#{p.id}: Package not installed '#{package.name}'"
-        next
-      end
-
-      puts "#{p.id}: #{package.name} = #{package.version}"
-    end
+    puts "#{p.provider.id}: #{p.package} #{p.provider} #{p.params.inspect}"
 
     return 0
   end

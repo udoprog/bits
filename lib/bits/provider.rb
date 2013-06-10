@@ -1,4 +1,19 @@
 module Bits
+  class ProviderException < Exception
+  end
+
+  # Is raised when a package being requested does not exist.
+  class MissingPackage < ProviderException
+  end
+
+  # Is raised when a bit does not exist.
+  class MissingBit < ProviderException
+  end
+
+  # Is raised when a package being requested does not exist.
+  class MissingProvidedPackage < ProviderException
+  end
+
   class Provider
     # Specify type name.
     def self.provider_id(value)
@@ -42,8 +57,8 @@ module Bits
       providers << o
     end
 
-    def get_version(package)
-      raise "not implemented: get_version"
+    def get_package(package)
+      raise "not implemented: get_package"
     end
   end
 end

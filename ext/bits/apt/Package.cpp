@@ -7,12 +7,12 @@
 namespace Apt {
   Package::Package(
     std::string name,
-    Rice::Object current_version,
-    Rice::Object candidate_version
+    Rice::Object current,
+    Rice::Object candidate
   )
     : name_(name)
-    , current_version_(current_version)
-    , candidate_version_(candidate_version)
+    , current_(current)
+    , candidate_(candidate)
   {
   }
 
@@ -24,20 +24,26 @@ namespace Apt {
     return name_;
   }
 
-  Rice::Object Package::current_version()
+  Rice::Object Package::current()
   {
-    return current_version_;
+    return current_;
   }
 
-  Rice::Object Package::candidate_version()
+  Rice::Object Package::candidate()
   {
-    return candidate_version_;
+    return candidate_;
   }
 
   std::string Package::to_s()
   {
     std::stringstream ss;
-    ss << "<Package name=" << name_ << ">";
+
+    ss << "<Package"
+       << " name=" << name_
+       << " current=" << current_
+       << " candidate=" << candidate_
+       << ">";
+
     return ss.str();
   }
 } /* Apt */
@@ -47,9 +53,11 @@ void Init_Apt_Package(Rice::Module parent)
 {
   Rice::Class rb_cPackage = 
     Rice::define_class_under<Apt::Package>(parent, "Package")
-      .define_constructor(Rice::Constructor<Apt::Package, std::string, Rice::Object>())
+      .define_constructor(Rice::Constructor<Apt::Package, std::string, Rice::Object, Rice::Object>())
       .define_method("name", &Apt::Package::name)
-      .define_method("current_version", &Apt::Package::current_version)
+      .define_method("current", &Apt::Package::current)
+      .define_method("candidate", &Apt::Package::candidate)
+      .define_method("current", &Apt::Package::current)
       .define_method("to_s", &Apt::Package::to_s)
   ;
 }

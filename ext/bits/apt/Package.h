@@ -10,18 +10,18 @@ namespace Apt {
   public:
     Package(
       std::string name,
-      Rice::Object current_version,
-      Rice::Object candidate_version
+      Rice::Object current,
+      Rice::Object candidate
     );
     ~Package();
     std::string name();
-    Rice::Object current_version();
-    Rice::Object candidate_version();
+    Rice::Object current();
+    Rice::Object candidate();
     std::string to_s();
   private:
     std::string name_;
-    Rice::Object current_version_;
-    Rice::Object candidate_version_;
+    Rice::Object current_;
+    Rice::Object candidate_;
   };
 } /* Apt */
 
