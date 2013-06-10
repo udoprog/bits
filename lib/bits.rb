@@ -82,7 +82,7 @@ HELP
   end
 
   def self.setup_backend(ns)
-    LocalBackend.new('./repo')
+    LocalBackend.new '/usr/lib/bits'
   end
 
   def self.main(args)
