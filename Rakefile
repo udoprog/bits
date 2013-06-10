@@ -1,7 +1,7 @@
 require "bundler/gem_tasks"
 
-require 'rake/testtask'
 require 'rake/clean'
+require 'rspec/core/rake_task'
 
 NAME = 'bits'
 
@@ -31,10 +31,7 @@ EXTENSIONS.each do |path|
     cp File.join(ext_path, "#{name}_ext.so"), target
   end
 
-  # make the :test task depend on the shared
-  # object, so it will be built automatically
-  # before running the tests
-  task :test => target
+  task :spec => target
 end
 
 # use 'rake clean' and 'rake clobber' to
@@ -44,10 +41,5 @@ CLEAN.include('ext/**/Makefile')
 
 CLOBBER.include('lib/**/*.so')
 
-# the same as before
-Rake::TestTask.new do |t|
-  t.libs << 'test'
-end
-
-desc "Run tests"
-task :default => :test
+RSpec::Core::RakeTask.new(:spec)
+task :default => :spec
