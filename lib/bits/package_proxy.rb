@@ -33,6 +33,7 @@ module Bits
     end
 
     # Remove the specified package.
+    # The package will be removed from all matching PPPs.
     def remove
       ppps.each do |ppp|
         ppp.provider.remove_package ppp.package

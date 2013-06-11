@@ -3,11 +3,13 @@ require 'optparse'
 require 'bits/provider/pip'
 require 'bits/provider/apt'
 require 'bits/backend/local'
+require 'bits/backend/join'
 require 'bits/package'
 require 'bits/repository'
 
 require 'bits/commands/install'
 require 'bits/commands/remove'
+require 'bits/commands/show'
 
 module Bits
   class << self
@@ -18,6 +20,7 @@ module Bits
 Commonly used command are:
   install : Install packages
   remove : Remove packages
+  show : Show information about packages
 
 See 'bits <command> --help' for more information on a specific command.
 HELP
@@ -87,7 +90,10 @@ HELP
     end
 
     def setup_backend(ns)
-      LocalBackend.new '/usr/lib/bits'
+      backends = []
+      backends << LocalBackend.new('/usr/lib/bits')
+      backends << LocalBackend.new('./bits')
+      JoinBackend.new backends
     end
 
     def main(args)

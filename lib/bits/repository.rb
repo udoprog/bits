@@ -5,11 +5,11 @@ require 'bits/package_proxy'
 
 module Bits
   class PPP
-    attr_accessor :package, :provider, :params
+    attr_accessor :provider, :package, :params
 
-    def initialize(package, provider, params)
-      @package = package
+    def initialize(provider, package, params)
       @provider = provider
+      @package = package
       @params = params
     end
   end
@@ -46,7 +46,7 @@ module Bits
     end
 
     def find_package(atom, criteria={})
-      all_packages = []
+      ppps = []
 
       bit = iterate_packages(atom) do |provider, params|
         begin
@@ -55,15 +55,15 @@ module Bits
           next
         end
 
-        all_packages << PPP.new(package, provider, params)
+        ppps << PPP.new(provider, package, params)
       end
 
-      if all_packages.empty?
+      if ppps.empty?
         log.warn "Could not find atom '#{atom}' with criteria #{criteria.inspect}"
         raise MissingProvidedPackage.new atom
       end
 
-      return PackageProxy.new bit, all_packages, criteria
+      return PackageProxy.new bit, ppps, criteria
     end
 
     private

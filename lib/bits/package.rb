@@ -9,7 +9,9 @@ module Bits
     end
 
     def to_s
-      "<Package atom=#{@atom} installed=#{@installed} candidate=#{@candidate}>"
+      installed_s = @installed || "(not installed)"
+      candidate_s = @candidate || "(no candidate)"
+      "<Package atom='#{@atom}' installed=#{installed_s} candidate=#{candidate_s}>"
     end
   end
 end
