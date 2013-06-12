@@ -1,7 +1,5 @@
 require 'optparse'
 
-require 'bits/provider/pip'
-require 'bits/provider/apt'
 require 'bits/backend/local'
 require 'bits/backend/join'
 require 'bits/package'
@@ -10,6 +8,11 @@ require 'bits/repository'
 require 'bits/commands/install'
 require 'bits/commands/remove'
 require 'bits/commands/show'
+
+require 'bits/provider/python'
+require 'bits/provider/apt'
+require 'bits/provider/portage'
+require 'bits/external_interface'
 
 module Bits
   class << self
@@ -101,7 +104,12 @@ HELP
 
       args, command = parse_options(args)
 
-      command.run args
+      begin
+        command.run args
+      ensure
+        Bits::ExternalInterface.close_interfaces
+      end
+
       return 0
     end
   end

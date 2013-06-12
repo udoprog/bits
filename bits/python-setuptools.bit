@@ -1,8 +1,12 @@
 depends 'python'
 
-provide :pip,
+provide :python,
   :atom => 'setuptools'
 
 provide :apt,
   :atom => 'python-setuptools',
+  :compiled => true
+
+provide :portage,
+  :atom => 'dev-python/setuptools',
   :compiled => true

@@ -1,0 +1,157 @@
+#!/usr/bin/env python
+
+import sys
+import json
+
+try:
+    import pkg_resources
+    has_pkg_resources = True
+except ImportError:
+    has_pkg_resources = False
+
+try:
+    import portage
+    has_portage = True
+except ImportError:
+    has_portage = False
+
+
+class RequestError(Exception):
+    pass
+
+
+class MissingRequestKey(Exception):
+    def __init__(self, key):
+        super(MissingRequestKey, self).__init__(
+            "Missing key '{0}' in request".format(key))
+
+
+def ping_handler(args):
+    capabilities = list()
+
+    if has_portage:
+        capabilities.append("portage")
+
+    if has_pkg_resources:
+        capabilities.append("pkg_resources")
+
+    return {
+        "__type__": "pong",
+        "capabilities": capabilities
+    }
+
+
+def find_project(package):
+    for p in pkg_resources.working_set:
+        if p.project_name == package:
+            return p
+
+    return None
+
+
+def python_info_handler(request):
+    atom = request.get('atom')
+
+    if atom is None:
+        raise MissingRequestKey("atom")
+
+    project = find_project(atom)
+
+    if project is None:
+        return {
+            "__type__": "missing_atom",
+            "atom": atom,
+        }
+
+    return {
+        "__type__": "info",
+        "name": project.project_name,
+        "installed": project.version,
+    }
+
+
+def portage_info_handler(request):
+    package = request['package']
+
+    if package is None:
+        raise MissingRequestKey("package")
+
+    vartree = portage.db[portage.root]['vartree']
+    porttree = portage.db[portage.root]['porttree']
+
+    name = None
+    installed = vartree.dep_bestmatch(package)
+    candidate = porttree.dep_bestmatch(package)
+
+    if not installed:
+        installed = None
+    else:
+        _, installed, rev = portage.pkgsplit(installed)
+        installed = "{0}-{1}".format(installed, rev)
+
+    if not candidate:
+        candidate = None
+    else:
+        name, candidate, rev = portage.pkgsplit(candidate)
+        candidate = "{0}-{1}".format(candidate, rev)
+
+    return {
+        "__type__": "info",
+        "name": name,
+        "installed": installed,
+        "candidate": candidate,
+    }
+
+
+handlers = {
+    "ping": ping_handler,
+    "python_info": python_info_handler,
+    "portage_info": portage_info_handler,
+}
+
+
+def handle_request(line):
+    try:
+        request = json.loads(line)
+    except:
+        raise RequestError("Could not decode request, expected type: json")
+
+    request_type = request.get('__type__')
+
+    if request_type is None:
+        raise RequestError("Missing 'type' in request")
+
+    handler = handlers.get(request_type)
+
+    if handler is None:
+        raise RequestError("No handler for type '{0}'".format(request_type))
+
+    return handler(request)
+
+
+def guarded_handle_request(line):
+    try:
+        return handle_request(line)
+    except RequestError, e:
+        return {"__type__": "error", "text": str(e)}
+
+
+def main(args):
+    while True:
+        try:
+            line = sys.stdin.readline()
+        except KeyboardInterrupt:
+            break
+
+        if not line:
+            break
+
+        response = guarded_handle_request(line)
+        print >>sys.stdout, json.dumps(response)
+        sys.stdout.flush()
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

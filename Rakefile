@@ -9,6 +9,7 @@ EXTENSIONS.each do |path|
   name = File.basename(path)
   ext_path = String.new(path)
   path.slice! 0, 4
+  source = File.join(ext_path, "#{name}_ext.so")
   target = "lib/#{path}/#{name}_ext.so"
   target_dir = File.dirname(target)
 
@@ -25,8 +26,10 @@ EXTENSIONS.each do |path|
       sh "make"
     end
 
-    mkdir target_dir
-    cp File.join(ext_path, "#{name}_ext.so"), target
+    if File.file? source
+      mkdir target_dir
+      cp source, target
+    end
   end
 
   task :spec => target

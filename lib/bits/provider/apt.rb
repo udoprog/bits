@@ -3,6 +3,8 @@ require 'bits/package'
 require 'bits/logging'
 require 'bits/spawn'
 
+require 'bits/command_provider'
+
 HAS_APT_NATIVE_EXT = begin
   require 'apt/apt_ext'
   true
@@ -13,6 +15,7 @@ end
 module Bits
   class AptProvider < Provider
     include Bits::Logging
+    include Bits::CommandProvider
 
     APT_GET = 'apt-get'
 
@@ -21,16 +24,16 @@ module Bits
 
     def self.initialize!
       unless HAS_APT_NATIVE_EXT
-        log.debug "Could not require APT native extension"
+        log.debug "APT native extension not available"
         return false
       end
 
       unless Apt::initialize
-        log.debug "Could not initialize APT native extension"
+        log.debug "APT native extension could not be initialized"
         return false
       end
 
-      log.debug "APT native extension are initialized"
+      log.debug "APT native extension is available"
       true
     end
 
@@ -40,25 +43,27 @@ module Bits
       raise MissingPackage.new package_name if result.empty?
       raise "Too many packages '#{package_name}'" if result.size > 1
 
-      p = result[0]
+      package = result[0]
 
       current = nil
       candidate = nil
 
-      current = p.current.version if p.current
-      candidate = p.candidate.version if p.candidate
+      current = package.current.version if package.current
+      candidate = package.candidate.version if package.candidate
 
-      return Bits::Package.new(p.name, current, candidate)
+      return Bits::Package.new(package.name, current, candidate)
     end
 
     def install_package(package)
-      exit_code = Bits.spawn [APT_GET, 'install', package.atom]
-      raise "Could not install package '#{package.atom}'" unless exit_code == 0
+      unless run [APT_GET, 'install', package.atom]
+        raise "Could not install package '#{package.atom}'"
+      end
     end
 
     def remove_package(package)
-      exit_code = Bits.spawn [APT_GET, 'remove', package.atom]
-      raise "Could not remove package '#{package.atom}'" unless exit_code == 0
+      unless Bits.spawn [APT_GET, 'remove', package.atom]
+        raise "Could not remove package '#{package.atom}'"
+      end
     end
 
     def to_s

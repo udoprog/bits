@@ -1,6 +1,6 @@
 depends 'python'
 
-provide :pip,
+provide :python,
   :atom => 'pip'
 
 provide :apt,

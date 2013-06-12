@@ -1,55 +1,42 @@
 require 'bits/provider'
+require 'bits/command_provider'
 require 'bits/spawn'
 require 'bits/package'
 require 'bits/logging'
 
+require 'bits/external_interface'
+
 require "xmlrpc/client"
 
 module Bits
-  class PipProvider < Provider
+  class PythonProvider < Provider
     include Bits::Logging
+    include Bits::CommandProvider
+    include Bits::ExternalInterface
 
     PIP = 'pip'
-    PYPI = 'https://pypi.python.org/pypi'
-    VERSION_REGEXP = /^Version: (.+)$/
+    INDEX = 'https://pypi.python.org/pypi'
 
-    provider_id :pip
-    provider_doc "Provides interface for Python pip"
+    provider_id :python
+    provider_doc "Provides interface for Python Packages"
 
     def self.initialize!
-      begin
-        exit_code = Bits.spawn ['pip', '--version'], :stdout => NULL
-      rescue Errno::ENOENT
-        log.debug "PIP command not available"
-        return false
-      end
-
-      if exit_code != 0 then
-        log.debug "PIP command could not be invoked"
-        return false
-      end
-
-      log.debug "PIP command available"
-      true
+      ok = true
+      ok &= self.check_command [PIP, '--version'], 'PIP'
+      ok &= self.setup_interface :python, :capabilities => [:pkg_resources]
+      ok
     end
 
     def initialize
-      @client = XMLRPC::Client.new_from_uri(PYPI)
+      @client = XMLRPC::Client.new_from_uri(INDEX)
       @client.http_header_extra = {'Content-Type' => 'text/xml'}
+      @python = self.class.interfaces[:python]
     end
 
     def get_installed_version(package_atom)
-      Bits.spawn(['pip', 'show', package_atom], :stdout => PIPE) do |out, err|
-        out.each_line do |line|
-          unless m = VERSION_REGEXP.match(line) then
-            next
-          end
-
-          return m[1]
-        end
-      end
-
-      nil
+      type, response = @python.request :python_info, :atom => package_atom
+      return nil if type == :missing_atom
+      response['installed']
     end
 
     def get_candidate_version(package_atom)
