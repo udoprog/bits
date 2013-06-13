@@ -26,7 +26,7 @@ module Bits
     end
 
     def initialize
-      @client = self.class.interfaces[:python]
+      @client = interfaces[:python]
     end
 
     def get_package(package_name)

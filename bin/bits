@@ -1,10 +1,16 @@
 #!/usr/bin/env ruby
 
+require 'rubygems'
+
 if __FILE__ == $0
     lib = File.expand_path File.join('..', '..', 'lib'), $0
-    $:.insert 0, lib if File.file? File.join(lib, 'bits.rb')
-    $:.insert 0, File.expand_path(File.join('..', '..'), $0)
-end
 
-require 'bits'
-exit Bits::main(ARGV)
+    if File.file? File.join(lib, 'bits.rb')
+        $:.insert 0, lib
+        bin = File.expand_path File.join('..', 'bin'), lib
+        ENV['PATH']="#{bin}:#{ENV['PATH']}"
+    end
+
+    require 'bits'
+    exit Bits::main(ARGV)
+end

@@ -34,6 +34,8 @@ module Bits
         return 0
       end
 
+      log.info "Removing '#{atom}' using provider(s): #{p.providers_s}"
+
       p.remove
       return 0
     end

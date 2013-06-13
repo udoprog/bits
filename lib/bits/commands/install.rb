@@ -39,11 +39,8 @@ module Bits
       depends[atom] = p
 
       depends.each do |atom, p|
-        installed = p.installed
-
-        unless installed.empty?
-          providers = installed.map{|ppp| ppp.provider.id}.join(', ')
-          log.info "Already installed '#{atom}' using provider(s): #{providers}"
+        if p.installed?
+          log.info "Already installed '#{atom}' using provider(s): #{p.providers_s}"
           next
         end
 

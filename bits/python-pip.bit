@@ -6,3 +6,6 @@ provide :python,
 provide :apt,
   :atom => 'python-pip',
   :compiled => true
+
+provide :portage,
+  :atom => 'dev-python/pip'

@@ -52,5 +52,15 @@ module Bits
         not ppp.package.installed.nil?
       end
     end
+
+    def providers
+      ppps.map do |ppp|
+        ppp.provider
+      end
+    end
+
+    def providers_s
+      providers.map(&:id).join ', '
+    end
   end
 end

@@ -1,12 +1,17 @@
+require 'bits/logging'
+
 require 'rubygems'
 require 'json'
 
 module Bits
   module ExternalInterface
     class Interface
+      include Bits::Logging
+
       attr_reader :capabilities
 
-      def initialize(args, stdin, stdout, pid)
+      def initialize(id, args, stdin, stdout, pid)
+        @id = id
         @args = args
         @stdin = stdin
         @stdout = stdout
@@ -29,7 +34,7 @@ module Bits
         begin
           type, response = request :ping
         rescue
-          log.debug "problem during ping: #{$!}"
+          log.debug "problem while pinging interface '#{@id}': #{$!}"
           return nil
         end
 
@@ -96,6 +101,7 @@ module Bits
     end
 
     module ClassMethods
+      # access global interface cache for class methods.
       def interfaces
         ExternalInterface.interfaces
       end
@@ -157,7 +163,7 @@ module Bits
         stdin_r.close
         stdout_w.close
 
-        interface = Interface.new(command, stdin_w, stdout_r, pid)
+        interface = Interface.new(id, command, stdin_w, stdout_r, pid)
 
         if not interface.ping
           interface.close
@@ -171,6 +177,11 @@ module Bits
     # global cache for interfaces.
     def self.interfaces
       @interfaces ||= {}
+    end
+
+    # access global interface cache for instances.
+    def interfaces
+      self.class.interfaces
     end
 
     # close all global interfaces

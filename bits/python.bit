@@ -1,2 +1,6 @@
 provide :apt,
   :compiled => true
+
+provide :portage,
+  :compiled => true,
+  :atom => 'dev-lang/python'

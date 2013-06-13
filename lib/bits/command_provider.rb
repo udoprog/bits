@@ -24,22 +24,16 @@ module Bits
       end
 
       def run(args)
-        Bits.spawn args == 0
+        Bits.spawn(args) == 0
       end
+    end
 
-      def external_json(*args)
-        data = nil
+    def check_command(*args)
+      self.class.check_command(*args)
+    end
 
-        exit_status = Bits.spawn args, :stdout => PIPE do |o, e|
-          data = o.read
-        end
-
-        return nil if exit_status != 0
-
-        raise "Could not get output data" if data.nil?
-
-        blob = JSON.load data
-      end
+    def run(*args)
+      self.class.run(*args)
     end
 
     def self.included(base)
