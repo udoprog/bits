@@ -2,22 +2,14 @@ require 'bits/command'
 require 'bits/logging'
 
 module Bits
-  class RemoveCommand < Command
+  define_command :remove do
     include Bits::Logging
 
-    command_name :remove
-
-    def initialize(ns)
-      @ns = ns
+    def self.setup(opts)
+      opts.banner = "Usage: bits remove <bit>"
     end
 
-    def parser
-      @parser ||= OptionParser.new do |opts|
-        opts.banner = "Usage: bits remove <bit>"
-      end
-    end
-
-    def run(args)
+    def entry(args)
       if args.empty? then
         puts parser.help
         return 1

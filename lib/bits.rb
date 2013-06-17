@@ -46,7 +46,7 @@ HELP
       end
 
       subcommands = {}
-      Bits::Command.register(subcommands, ns)
+      Bits.register_commands(subcommands, ns)
 
       global.order!
       command = ARGV.shift
@@ -63,8 +63,8 @@ HELP
         exit 0
       end
 
-      command = subcommands[command]
-      command.parser.order!
+      command, parser = subcommands[command]
+      parser.order!
 
       providers = setup_providers ns
       backend = setup_backend ns
@@ -107,7 +107,7 @@ HELP
       args, command = parse_options(args)
 
       begin
-        command.run args
+        command.entry args
       ensure
         Bits::ExternalInterface.close_interfaces
       end

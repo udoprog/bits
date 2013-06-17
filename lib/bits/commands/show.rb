@@ -3,24 +3,16 @@ require 'bits/logging'
 require 'bits/exceptions'
 
 module Bits
-  class ShowCommand < Command
+  define_command :show do
     include Bits::Logging
 
-    command_name :show
-
-    def initialize(ns)
-      @ns = ns
+    def self.setup(opts)
+      opts.banner = "Usage: bits show <bit>"
+      opts.separator ""
+      opts.separator "Show information about the specified bit."
     end
 
-    def parser
-      @parser ||= OptionParser.new do |opts|
-        opts.banner = "Usage: bits show <bit>"
-        opts.separator ""
-        opts.separator "Show information about the specified bit."
-      end
-    end
-
-    def run(args)
+    def entry(args)
       if args.empty? then
         puts parser.help
         return 1
@@ -28,10 +20,10 @@ module Bits
 
       atom = args[0]
 
-      repository = @ns[:repository]
+      repository = ns[:repository]
 
       params = {}
-      params[:compiled] = @ns[:compiled] if @ns.has_key? :compiled
+      params[:compiled] = ns[:compiled] if ns.has_key? :compiled
 
       begin
         p = repository.find_package atom, params
