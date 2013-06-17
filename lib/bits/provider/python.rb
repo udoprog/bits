@@ -10,7 +10,9 @@ require 'bits/external_interface'
 require "xmlrpc/client"
 
 module Bits
-  class PythonProvider < Provider
+  define_provider :python,
+    :desc => "Provides interface for Python Packages" \
+  do
     include Bits::Logging
     include Bits::CommandProvider
     include Bits::ExternalInterface
@@ -18,17 +20,15 @@ module Bits
     PIP = 'pip'
     INDEX = 'https://pypi.python.org/pypi'
 
-    provider_id :python
-    provider_doc "Provides interface for Python Packages"
-
-    def self.initialize!
+    def self.check
       ok = true
       ok &= self.check_command [PIP, '--version'], 'PIP'
       ok &= self.setup_interface :python, :capabilities => [:pkg_resources]
       ok
     end
 
-    def initialize
+    def initialize(ns)
+      super ns
       @client = XMLRPC::Client.new_from_uri(INDEX)
       @client.http_header_extra = {'Content-Type' => 'text/xml'}
       @python = self.class.interfaces[:python]

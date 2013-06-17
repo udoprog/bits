@@ -14,16 +14,15 @@ rescue LoadError
 end
 
 module Bits
-  class AptProvider < Provider
+  define_provider :apt, \
+    :desc => "Provides interface for Debian APT" \
+  do
     include Bits::Logging
     include Bits::CommandProvider
 
     APT_GET = 'apt-get'
 
-    provider_id :apt
-    provider_doc "Provides interface for Debian APT"
-
-    def self.initialize!
+    def self.check
       unless HAS_APT_NATIVE_EXT
         log.debug "APT native extension not available"
         return false

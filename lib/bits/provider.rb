@@ -1,59 +1,59 @@
 module Bits
   class Provider
     class << self
-      # Specify type name.
-      def provider_id(value)
-        @id = value
-      end
-
-      # Specify type documentation.
-      def provider_doc(value)
-        @doc = value
-      end
-
-      def id
-        @id ||= nil
-      end
-
-      def doc
-        @doc ||= nil
-      end
-
       # Override to provide custom static initialization code for provider.
       # Should return true if the specified provider can be used in this system.
-      def initialize!
+      def check
         true
       end
+    end
 
-      # Return the available providers.
-      def providers
-        @providers ||= []
+    attr_reader :ns
+
+    def initialize(ns)
+      @ns = ns
+    end
+
+    def info(atom)
+      raise "not implemented: info"
+    end
+
+    def install(atom)
+      raise "not implemented: install"
+    end
+
+    def remove(atom)
+      raise "not implemented: remove"
+    end
+  end
+
+  class << self
+    def providers
+      @providers ||= {}
+    end
+
+    def define_provider(id, params={}, &block)
+      raise "Provider already defined: #{id}" if providers[id]
+
+      desc = params[:desc] || "(no description)"
+
+      klass = Class.new Provider do
+        @id = id
+        @name = id.to_s.capitalize
+        @desc = desc
+
+        class << self
+          attr_reader :id, :desc, :name
+
+          def to_s
+            "Bits::Provider::#{@name}"
+          end
+        end
       end
 
-      # Add all inheriting classes to a static list of implementors.
-      def inherited(o)
-        providers << o
-      end
-    end
+      klass.class_eval(&block)
 
-    def id
-      self.class.id
-    end
-
-    def doc
-      self.class.doc
-    end
-
-    def get_package(package)
-      raise "not implemented: get_package"
-    end
-
-    def install_package(package)
-      raise "not implemented: install_package"
-    end
-
-    def remove_package(package)
-      raise "not implemented: remove_package"
+      providers[id] = klass
     end
   end
 end

@@ -7,7 +7,9 @@ require 'bits/spawn'
 require 'json'
 
 module Bits
-  class PortageProvider < Provider
+  define_provider :portage, \
+    :desc => "Provides interface to Gentoo Portage" \
+  do
     include Bits::Logging
     include Bits::CommandProvider
     include Bits::ExternalInterface
@@ -15,17 +17,15 @@ module Bits
     # bridge command
     EMERGE = 'emerge'
 
-    provider_id :portage
-    provider_doc "Provides interface to Gentoo Portage"
-
-    def self.initialize!
+    def self.check
       ok = true
       ok &= self.check_command [EMERGE, '--version'], "EMERGE"
       ok &= self.setup_interface :python, :capabilities => [:portage]
       ok
     end
 
-    def initialize
+    def initialize(ns)
+      super ns
       @client = interfaces[:python]
     end
 

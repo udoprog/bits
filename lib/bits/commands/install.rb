@@ -2,7 +2,7 @@ require 'bits/command'
 require 'bits/logging'
 
 module Bits
-  define_command :install do
+  define_command :install, :desc => 'Install a package' do
     include Bits::Logging
 
     def self.setup(opts)

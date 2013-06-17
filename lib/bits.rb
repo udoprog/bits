@@ -21,32 +21,44 @@ module Bits
     def parse_options(args)
       ns = {}
 
-      subtext = <<HELP
-Commonly used command are:
-  install : Install packages
-  remove : Remove packages
-  show : Show information about packages
+      subcommands = Hash.new
+      available_providers = Array.new
 
-See 'bits <command> --help' for more information on a specific command.
-HELP
+      global = OptionParser.new do |global_opts|
+        global_opts.banner = "Usage: bits <command> [options]"
 
-      global = OptionParser.new do |opts|
-        opts.banner = "Usage: bits <command> [options]"
-
-        opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
+        global_opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
           ns[:verbose] = v
         end
 
-        opts.on("-d", "--debug", "Enable debug logging") do |v|
+        global_opts.on("-d", "--debug", "Enable debug logging") do |v|
           @log.level = Log4r::DEBUG
         end
 
-        opts.separator ""
-        opts.separator subtext
-      end
+        global_opts.separator ""
+        global_opts.separator "Available commands:"
 
-      subcommands = {}
-      Bits.register_commands(subcommands, ns)
+        Bits.commands.each do |id, klass|
+          global_opts.separator "  #{klass.id}: #{klass.desc}"
+
+          parser = OptionParser.new do |opts|
+            klass.setup(opts)
+          end
+
+          subcommands[id] = [klass, parser]
+        end
+
+        global_opts.separator "Providers:"
+
+        Bits.providers.each do |id, klass|
+          if klass.check
+            available_providers << klass
+            global_opts.separator "  #{klass.id}: #{klass.desc}"
+          else
+            global_opts.separator "  #{klass.id}: #{klass.desc} (not available)"
+          end
+        end
+      end
 
       global.order!
       command = ARGV.shift
@@ -63,10 +75,11 @@ HELP
         exit 0
       end
 
-      command, parser = subcommands[command]
+      command_klass, parser = subcommands[command]
       parser.order!
 
-      providers = setup_providers ns
+      command = command_klass.new ns
+      providers = setup_providers available_providers, ns
       backend = setup_backend ns
 
       ns[:repository] = Bits::Repository.new(providers, backend)
@@ -81,17 +94,14 @@ HELP
       log
     end
 
-    # Initialize all available providers and return an array containing an
-    # instance of them.
-    def setup_providers(ns)
-      providers = Hash.new
+    def setup_providers(available_providers, ns)
+      instances = Hash.new
 
-      Provider.providers.each do |p|
-        next unless p.initialize!
-        providers[p.id] = p.new
+      available_providers.each do |klass|
+        instances[klass.id] = klass.new ns
       end
 
-      return providers
+      instances
     end
 
     def setup_backend(ns)

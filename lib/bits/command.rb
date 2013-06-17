@@ -1,48 +1,41 @@
 require 'optparse'
 
 module Bits
+  class Command
+    attr_reader :ns
+
+    def initialize(ns)
+      @ns = ns
+    end
+  end
+
   class << self
     def commands
       @commands ||= {}
     end
 
-    def define_command(id, &block)
+    def define_command(id, params={}, &block)
+      desc = params[:desc] || "(no description)"
+
       raise "Already defined: #{id}" if commands[id]
 
       klass = Class.new(Command) do
-        @id = id.to_s.capitalize
+        @id = id
+        @name = id.to_s.capitalize
+        @desc = desc
 
-        def self.id
-          @id
-        end
+        class << self
+          attr_reader :id, :name, :desc
 
-        def self.to_s
-          "Bits::#{@id}"
+          def to_s
+            "Bits::#{@name}"
+          end
         end
       end
 
       klass.class_eval(&block)
 
       commands[id] = klass
-    end
-
-    def register_commands(subcommands, ns)
-      commands.each do |id, klass|
-        parser = OptionParser.new do |opts|
-          klass.setup(opts)
-        end
-
-        command = klass.new ns
-        subcommands[id] = [command, parser]
-      end
-    end
-  end
-
-  class Command
-    attr_reader :ns
-
-    def initialize(ns)
-      @ns = ns
     end
   end
 end

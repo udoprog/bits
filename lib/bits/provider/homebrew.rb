@@ -11,16 +11,15 @@ rescue LoadError
 end
 
 module Bits
-  class HomebrewProvider < Provider
+  define_provider :homebrew, \
+    :desc => "Provides interface for Homebrew" \
+  do
     include Bits::Logging
     include Bits::CommandProvider
 
     BREW = 'apt-get'
 
-    provider_id :homebrew
-    provider_doc "Provides interface for Homebrew"
-
-    def self.initialize!
+    def self.check
       unless HAS_HOMEBREW
         log.debug "homebrew does not seem to be available on this system"
         return false
