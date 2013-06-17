@@ -3,6 +3,7 @@ require 'bits/command_provider'
 require 'bits/spawn'
 require 'bits/package'
 require 'bits/logging'
+require 'bits/exceptions'
 
 require 'bits/external_interface'
 
@@ -40,7 +41,12 @@ module Bits
     end
 
     def get_candidate_version(package_atom)
-      result = @client.call(:package_releases, package_atom)
+      begin
+        result = @client.call(:package_releases, package_atom)
+      rescue SocketError
+        return nil
+      end
+
       raise MissingPackage.new package_atom if result.empty?
       return result[0]
     end

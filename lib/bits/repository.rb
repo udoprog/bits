@@ -2,6 +2,7 @@ require 'bits/logging'
 require 'bits/bit_declaration'
 require 'bits/bit'
 require 'bits/package_proxy'
+require 'bits/exceptions'
 
 module Bits
   class PPP

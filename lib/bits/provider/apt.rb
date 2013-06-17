@@ -2,6 +2,7 @@ require 'bits/provider'
 require 'bits/package'
 require 'bits/logging'
 require 'bits/spawn'
+require 'bits/exceptions'
 
 require 'bits/command_provider'
 

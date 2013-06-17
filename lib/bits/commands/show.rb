@@ -1,5 +1,6 @@
 require 'bits/command'
 require 'bits/logging'
+require 'bits/exceptions'
 
 module Bits
   class ShowCommand < Command
@@ -45,7 +46,7 @@ module Bits
       p.ppps.each do |ppp|
         puts "  #{ppp.provider.id}:"
         puts "    Package: #{ppp.package}"
-        puts "    Params: #{ppp.params}"
+        puts "    Params: #{ppp.params.inspect}"
       end
 
       return 0

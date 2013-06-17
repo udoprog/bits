@@ -1,5 +1,6 @@
 require 'bits/backend'
 require 'bits/logging'
+require 'bits/exceptions'
 
 require 'bits/bit_reader/local'
 

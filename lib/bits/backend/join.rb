@@ -1,5 +1,6 @@
 require 'bits/backend'
 require 'bits/logging'
+require 'bits/exceptions'
 
 module Bits
   class JoinBackend < Backend

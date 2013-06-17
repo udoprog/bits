@@ -12,6 +12,8 @@ require 'bits/commands/show'
 require 'bits/provider/python'
 require 'bits/provider/apt'
 require 'bits/provider/portage'
+require 'bits/provider/homebrew'
+
 require 'bits/external_interface'
 
 module Bits

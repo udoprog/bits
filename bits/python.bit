@@ -4,3 +4,7 @@ provide :apt,
 provide :portage,
   :compiled => true,
   :atom => 'dev-lang/python'
+
+provide :homebrew,
+  :compiled => true,
+  :atom => 'python'
