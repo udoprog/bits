@@ -38,7 +38,7 @@ module Bits
         global_opts.separator ""
         global_opts.separator "Available commands:"
 
-        Bits.commands.each do |id, klass|
+        Bits.commands.sort_by(&:to_s).each do |id, klass|
           global_opts.separator "  #{klass.id}: #{klass.desc}"
 
           parser = OptionParser.new do |opts|
@@ -50,7 +50,7 @@ module Bits
 
         global_opts.separator "Providers:"
 
-        Bits.providers.each do |id, klass|
+        Bits.providers.sort_by(&:to_s).each do |id, klass|
           if klass.check
             available_providers << klass
             global_opts.separator "  #{klass.id}: #{klass.desc}"
