@@ -71,9 +71,5 @@ module Bits
         end
       end
     end
-
-    def to_s
-      "<AptProvider>"
-    end
   end
 end

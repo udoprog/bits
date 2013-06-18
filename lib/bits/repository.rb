@@ -6,13 +6,14 @@ require 'bits/exceptions'
 
 module Bits
   class PPP
-    attr_accessor :bit, :provider, :package, :params
+    attr_accessor :bit, :provider, :package, :params, :path
 
-    def initialize(bit, provider, package, params)
+    def initialize(bit, provider, package, params, path)
       @bit = bit
       @provider = provider
       @package = package
       @params = params
+      @path = path
     end
   end
 
@@ -22,47 +23,26 @@ module Bits
     attr_accessor :providers, :backend
 
     def initialize(providers, backend)
-      @cache = {}
+      @bitcache = {}
       @providers = providers
       @backend = backend
-    end
-
-    def check_dependencies(package_proxy)
-      package_proxies = {}
-
-      dependencies = package_proxy.dependencies
-
-      while not dependencies.empty?
-        more_dependencies = {}
-
-        dependencies.each do |atom, params|
-          next if package_proxies.has_key? atom
-          proxy = find_package(atom, params)
-          package_proxies[atom] = proxy
-          more_dependencies.merge! proxy.dependencies
-        end
-
-        dependencies = more_dependencies
-      end
-
-      package_proxies
     end
 
     def find_package(atom, criteria={})
       ppps = []
 
-      iterate_packages(atom) do |bit, provider, params|
+      iterate_packages(atom) do |bit, provider, params, path|
         begin
           package = provider.get_package(params[:atom])
         rescue MissingPackage
           next
         end
 
-        ppps << PPP.new(bit, provider, package, params)
+        ppps << PPP.new(bit, provider, package, params, path)
       end
 
       if ppps.empty?
-        log.warn "Could not find atom '#{atom}' with criteria #{criteria.inspect}"
+        log.warn "Could not find atom '#{atom}'"
         raise MissingProvidedPackage.new atom
       end
 
@@ -72,49 +52,49 @@ module Bits
     private
 
     def load_bit(atom)
-      return @cache[atom] unless @cache[atom].nil?
+      log.debug "Loading bit: #{atom}"
+      return @bitcache[atom] unless @bitcache[atom].nil?
       reader = backend.fetch(atom)
-      @cache[atom] = Bit.eval reader, atom
-    end
-
-    def find_provider(provider_id)
-      providers[provider_id]
+      @bitcache[atom] = Bit.eval reader, atom
     end
 
     def iterate_packages(atom)
       bit = load_bit atom
-      bits = [[bit, []]]
+      bits = [[bit, [], nil]]
 
       while not bits.empty?
-        current_bit, path = bits.shift
+        current_bit, path, filter = bits.shift
 
         path << current_bit.atom
 
-        current_bit.provider_ids.each do |provider_id|
-          provider = find_provider provider_id
+        # match all the providers that is specified by the bit and if
+        # provider_filter is defined, explicitly match that too.
+        matching = providers.select do |p|
+          current_bit.provided_by?(p.provider_id) and
+          (filter.nil? or filter == p.provider_id)
+        end
 
-          if provider.nil? then
-            log.debug "No such provider: #{provider_id}"
-            next
-          end
+        raise "No matching providers: #{current_bit}" if matching.empty?
 
-          params = current_bit.get_provides provider_id
+        matching.each do |provider|
+          p = current_bit.get_provides provider.provider_id
 
-          raise "Not provided: #{provider_id}" if params.nil?
+          if p.kind_of? String
+            if path.include? p
+              raise "Circular reference: #{path.inspect}"
+            end
 
-          if params.kind_of? String
-            raise "Circular reference" if path.include? params
-            next_bit = load_bit params
-            bits << [next_bit, Array.new(path)]
+            next_bit = load_bit p
+            bits << [next_bit, Array.new(path), provider.provider_id]
             next
           end
 
           params = {
-            :atom => (params[:atom] || current_bit.atom),
-            :compiled => (params[:compiled] || false),
+            :atom => (p[:atom] || current_bit.atom),
+            :compiled => (p[:compiled] || false),
           }
 
-          yield [current_bit, provider, params]
+          yield [current_bit, provider, params, path]
         end
       end
     end

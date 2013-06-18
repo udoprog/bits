@@ -40,32 +40,38 @@ module Bits
       @providers ||= {}
     end
 
-    def define_provider(id, params={}, &block)
-      raise "Provider already defined: #{id}" if providers[id]
+    def define_provider(provider_id, params={}, &block)
+      if providers[provider_id]
+        raise "Provider already defined: #{provider_id}"
+      end
 
       desc = params[:desc] || "(no description)"
 
       klass = Class.new Provider do
-        @id = id
-        @name = id.to_s.capitalize
+        @provider_id = provider_id
+        @name = provider_id.to_s.capitalize
         @desc = desc
 
-        def id
-          self.class.id
+        def to_s
+          self.class.to_s
+        end
+
+        def provider_id
+          self.class.provider_id
         end
 
         class << self
-          attr_reader :id, :desc, :name
+          attr_reader :provider_id, :desc, :name
 
           def to_s
-            "Bits::Provider::#{@name}"
+            "#<Bits::Provider::#{@name}>"
           end
         end
       end
 
       klass.class_eval(&block)
 
-      providers[id] = klass
+      providers[provider_id] = klass
     end
   end
 end

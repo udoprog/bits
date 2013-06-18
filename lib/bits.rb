@@ -41,33 +41,33 @@ module Bits
         global_opts.separator ""
         global_opts.separator "Available commands:"
 
-        Bits.commands.sort_by(&:to_s).each do |id, klass|
-          global_opts.separator "  #{klass.id}: #{klass.desc}"
+        Bits.commands.values.sort_by{|c| c.command_id.to_s}.each do |klass|
+          global_opts.separator "  #{klass.command_id}: #{klass.desc}"
 
           parser = OptionParser.new do |opts|
             klass.setup(opts)
           end
 
-          subcommands[klass.id] = [klass, parser]
+          subcommands[klass.command_id] = [klass, parser]
         end
 
-        Bits.providers.sort_by(&:to_s).each do |id, klass|
-          if klass.check
-            available_providers << klass
+        Bits.providers.values.sort_by{|p| p.provider_id.to_s}.each do |provider_class|
+          if provider_class.check
+            available_providers << provider_class
           else
-            unavailable_providers << klass
+            unavailable_providers << provider_class
           end
         end
 
         global_opts.separator "Providers:"
 
-        available_providers.each do |klass|
-          global_opts.separator "  #{klass.id}: #{klass.desc}"
+        available_providers.each do |provider_class|
+          global_opts.separator "  #{provider_class.provider_id}: #{provider_class.desc}"
         end
 
         global_opts.separator "Unavailable providers:"
         unavailable_providers.each do |klass|
-          global_opts.separator "  #{klass.id}: #{klass.last_check_error}"
+          global_opts.separator "  #{klass.provider_id}: #{klass.last_check_error}"
         end
       end
 
@@ -117,13 +117,9 @@ module Bits
     end
 
     def setup_providers(available_providers, ns)
-      instances = Hash.new
-
-      available_providers.each do |klass|
-        instances[klass.id] = klass.new ns
+      available_providers.collect do |provider_class|
+        provider_class.new ns
       end
-
-      instances
     end
 
     def setup_backend(ns)

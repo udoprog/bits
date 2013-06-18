@@ -35,8 +35,8 @@ module Bits
       puts "PPPs:"
 
       p.ppps.each do |ppp|
-        puts "  #{ppp.provider.id}:"
-        puts "    Atom: #{ppp.bit.atom}"
+        puts "  #{ppp.provider.provider_id}:"
+        puts "    Bit: #{ppp.bit}"
         puts "    Package: #{ppp.package}"
         puts "    Params: #{ppp.params.inspect}"
       end

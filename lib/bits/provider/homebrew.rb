@@ -55,9 +55,5 @@ module Bits
         end
       end
     end
-
-    def to_s
-      "<HomebrewProvider>"
-    end
   end
 end

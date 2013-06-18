@@ -78,9 +78,5 @@ module Bits
         spawn [PIP, 'uninstall', package.atom]
       end
     end
-
-    def to_s
-      "<PipProvider>"
-    end
   end
 end

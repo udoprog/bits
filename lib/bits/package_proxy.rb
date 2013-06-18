@@ -18,16 +18,12 @@ module Bits
     end
 
     def dependencies
-      ppps.select{|ppp| ppp.bit.dependencies}.flatten
+      ppps.collect{|ppp| ppp.bit.dependencies}.flatten
     end
 
-    # Install the specified package, this will only install on the first in
-    # order provider that matches the specified criteria.
-    def install
-      ppps.each do |ppp|
-        next unless matches_criteria? ppp.params
-        ppp.provider.install ppp.package
-        break
+    def matching_ppps
+      ppps.select do |ppp|
+        matches_criteria? ppp.params
       end
     end
 
@@ -59,7 +55,7 @@ module Bits
     end
 
     def providers_s
-      providers.map(&:id).join ', '
+      providers.map(&:provider_id).join ', '
     end
   end
 end

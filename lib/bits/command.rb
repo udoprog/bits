@@ -15,18 +15,20 @@ module Bits
       @commands ||= {}
     end
 
-    def define_command(id, params={}, &block)
+    def define_command(command_id, params={}, &block)
+      if commands[command_id]
+        raise "Command already defined: #{command_id}" 
+      end
+
       desc = params[:desc] || "(no description)"
 
-      raise "Already defined: #{id}" if commands[id]
-
       klass = Class.new(Command) do
-        @id = id
-        @name = id.to_s.capitalize
+        @command_id = command_id
+        @name = command_id.to_s.capitalize
         @desc = desc
 
         class << self
-          attr_reader :id, :name, :desc
+          attr_reader :command_id, :name, :desc
 
           def to_s
             "Bits::#{@name}"
@@ -36,7 +38,7 @@ module Bits
 
       klass.class_eval(&block)
 
-      commands[id] = klass
+      commands[command_id] = klass
     end
   end
 end
