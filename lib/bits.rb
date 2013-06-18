@@ -8,6 +8,7 @@ require 'bits/repository'
 require 'bits/commands/install'
 require 'bits/commands/remove'
 require 'bits/commands/show'
+require 'bits/commands/sync'
 
 require 'bits/provider/python'
 require 'bits/provider/apt'
@@ -88,6 +89,8 @@ module Bits
       command_klass, parser = subcommands[command]
       parser.order!
 
+      ns[:local_repository_dir] = setup_repository_dir ns
+
       command = command_klass.new ns
       providers = setup_providers available_providers, ns
       backend = setup_backend ns
@@ -95,6 +98,12 @@ module Bits
       ns[:repository] = Bits::Repository.new(providers, backend)
 
       return ARGV, command
+    end
+
+    def setup_repository_dir(ns)
+      home = ENV['HOME']
+      raise "HOME environment variable not defined" if home.nil?
+      File.join home, '.bits'
     end
 
     def setup_logging
@@ -115,9 +124,12 @@ module Bits
     end
 
     def setup_backend(ns)
+      local_dir = ns[:local_repository_dir]
+
       backends = []
-      backends << LocalBackend.new('/usr/lib/bits')
+      #backends << LocalBackend.new('/usr/lib/bits')
       backends << LocalBackend.new('./bits')
+      backends << LocalBackend.new(local_dir) if File.directory? local_dir
       JoinBackend.new backends
     end
 
