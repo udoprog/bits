@@ -8,6 +8,5 @@ describe Bits::Repository do
     package_proxy.stub(:dependencies => {})
 
     repo = Bits::Repository.new providers, backend
-    repo.check_dependencies package_proxy
   end
 end

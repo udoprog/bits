@@ -13,11 +13,6 @@ module Bits
       "<Bit atom=#{atom} dependencies=#{dependencies.inspect} provides=#{@provides.inspect}>"
     end
 
-    # List all provider ids that work for this bit.
-    def provider_ids
-      @provides.keys
-    end
-
     def provided_by?(provider_id)
       @provides.has_key? provider_id
     end
