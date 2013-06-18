@@ -42,6 +42,10 @@ module Bits
         @name = id.to_s.capitalize
         @desc = desc
 
+        def id
+          self.class.id
+        end
+
         class << self
           attr_reader :id, :desc, :name
 
