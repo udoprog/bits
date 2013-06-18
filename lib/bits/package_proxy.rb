@@ -5,10 +5,9 @@ module Bits
   # This allows for eager loading and lazy lookup of if a specific atom can be
   # considered as 'installed' or not.
   class PackageProxy
-    attr_accessor :bit, :ppps, :criteria
+    attr_accessor :ppps, :criteria
 
-    def initialize(bit, ppps, criteria)
-      @bit = bit
+    def initialize(ppps, criteria)
       @ppps = ppps
       @criteria = criteria
     end
@@ -19,7 +18,7 @@ module Bits
     end
 
     def dependencies
-      bit.dependencies
+      ppps.select{|ppp| ppp.bit.dependencies}.flatten
     end
 
     # Install the specified package, this will only install on the first in
@@ -27,7 +26,7 @@ module Bits
     def install
       ppps.each do |ppp|
         next unless matches_criteria? ppp.params
-        ppp.provider.install_package ppp.package
+        ppp.provider.install ppp.package
         break
       end
     end
@@ -36,7 +35,7 @@ module Bits
     # The package will be removed from all matching PPPs.
     def remove
       ppps.each do |ppp|
-        ppp.provider.remove_package ppp.package
+        ppp.provider.remove ppp.package
       end
     end
 

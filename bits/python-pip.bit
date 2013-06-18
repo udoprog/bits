@@ -1,11 +1,11 @@
 depends 'python'
 
-provide :python,
+provided_by :python,
   :atom => 'pip'
 
-provide :apt,
+provided_by :apt,
   :atom => 'python-pip',
   :compiled => true
 
-provide :portage,
+provided_by :portage,
   :atom => 'dev-python/pip'

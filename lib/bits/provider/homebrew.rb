@@ -31,19 +31,28 @@ module Bits
     end
 
     def get_package(atom)
-      f = Formula.factory(atom)
-      return Bits::Package.new(atom, f.installed_version, f.version)
+      begin
+        f = Formula.factory(atom)
+      rescue FormulaUnavailableError
+        raise MissingPackage.new(atom)
+      end
+
+      Bits::Package.new(atom, f.installed_version, f.version)
     end
 
-    def install_package(package)
-      unless run [BREW, 'install', package.atom]
-        raise "Could not install package '#{package.atom}'"
+    def install(package)
+      execute do
+        unless run [BREW, 'install', package.atom]
+          raise "Could not install package '#{package.atom}'"
+        end
       end
     end
 
-    def remove_package(package)
-      unless Bits.spawn [BREW, 'uninstall', package.atom]
-        raise "Could not remove package '#{package.atom}'"
+    def remove(package)
+      execute do
+        unless spawn [BREW, 'uninstall', package.atom]
+          raise "Could not remove package '#{package.atom}'"
+        end
       end
     end
 

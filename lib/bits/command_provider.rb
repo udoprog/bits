@@ -22,10 +22,6 @@ module Bits
         log.debug "#{name} command available"
         true
       end
-
-      def run(args)
-        Bits.spawn(args) == 0
-      end
     end
 
     def check_command(*args)

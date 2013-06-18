@@ -1,16 +1,25 @@
 module Bits
   # Class used to manage state of a bit declaration file.
   class BitDeclaration
-    attr_accessor :provide_params, :dependencies
+    attr_accessor :provides, :dependencies
 
     def initialize
-      @provide_params = {}
+      @provides = {}
       @dependencies = {}
     end
 
     # Used inside bit declaration.
-    def provide(provider_id, params={})
-      @provide_params[provider_id] = params
+    def provided_by(provider_id, params={})
+      @provides[provider_id] = params
+    end
+
+    # Used inside bit declaration.
+    # Defines that the following set of providers are provided by another bit.
+    def provided_for(params={})
+      params.each do |key, value|
+        key = key.to_sym
+        @provides[key] = value
+      end
     end
 
     def depends(atom, params={})

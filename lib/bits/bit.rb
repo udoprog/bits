@@ -3,31 +3,24 @@ module Bits
   class Bit
     attr_accessor :atom, :dependencies
 
-    def initialize(atom, provide_params, dependencies)
+    def initialize(atom, provides, dependencies)
       @atom = atom
-      @provide_params = provide_params
+      @provides = provides
       @dependencies = dependencies
     end
 
     # List all provider ids that work for this bit.
     def provider_ids
-      @provide_params.keys
+      @provides.keys
     end
 
-    def get_params(provider_id)
-      p = @provide_params[provider_id]
-
-      return nil if p.nil?
-
-      {
-        :atom => (p[:atom] || @atom),
-        :compiled => (p[:compiled] || false),
-      }
+    def get_provides(provider_id)
+      @provides[provider_id]
     end
 
     def self.eval(reader, atom)
       decl = BitDeclaration.eval reader
-      self.new atom, decl.provide_params, decl.dependencies
+      self.new atom, decl.provides, decl.dependencies
     end
   end
 end

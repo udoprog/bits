@@ -39,11 +39,11 @@ module Bits
       true
     end
 
-    def get_package(package_name)
-      result = Apt::Cache::policy(package_name)
+    def get_package(atom)
+      result = Apt::Cache::policy(atom)
 
-      raise MissingPackage.new package_name if result.empty?
-      raise "Too many packages '#{package_name}'" if result.size > 1
+      raise MissingPackage.new atom if result.empty?
+      raise "Too many packages '#{atom}'" if result.size > 1
 
       package = result[0]
 
@@ -56,15 +56,19 @@ module Bits
       return Bits::Package.new(package.name, current, candidate)
     end
 
-    def install_package(package)
-      unless run [APT_GET, 'install', package.atom]
-        raise "Could not install package '#{package.atom}'"
+    def install(package)
+      execute do
+        unless run [APT_GET, 'install', package.atom], :superuser => true
+          raise "Could not install package '#{package.atom}'"
+        end
       end
     end
 
-    def remove_package(package)
-      unless Bits.spawn [APT_GET, 'remove', package.atom]
-        raise "Could not remove package '#{package.atom}'"
+    def remove(package)
+      execute do
+        unless run [APT_GET, 'remove', package.atom], :superuser => true
+          raise "Could not remove package '#{package.atom}'"
+        end
       end
     end
 

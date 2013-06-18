@@ -8,7 +8,7 @@ module Bits
   DEV_NULL = '/dev/null'
 
   class << self
-    def handle_exit(pid, fd_cache)
+    def handle_exit(pid, fd_cache, ignore_exitcode)
       fd_cache.each do |key, fd|
         fd.close
       end
@@ -21,7 +21,7 @@ module Bits
         raise Errno::ENOENT
       end
 
-      if exitstatus != 0 then
+      if not ignore_exitcode and exitstatus != 0 then
         raise "Bad exit status: #{exitstatus}"
       end
 
@@ -60,6 +60,7 @@ module Bits
 
       stdout = (params[:stdout] || $stdout)
       stderr = (params[:stderr] || $stderr)
+      ignore_exitcode = params[:ignore_exitcode] || false
 
       out = setup_file stdout, $stdout, fd_cache
       err = setup_file stderr, $stderr, fd_cache
@@ -80,9 +81,9 @@ module Bits
       out = handle_parent_file stdout, out
       err = handle_parent_file stderr, err
 
-      return handle_exit pid, fd_cache unless block_given?
+      return handle_exit pid, fd_cache, ignore_exitcode unless block_given?
       yield [out, err]
-      handle_exit pid, fd_cache
+      handle_exit pid, fd_cache, ignore_exitcode
     end
   end
 end

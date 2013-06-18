@@ -1,3 +1,5 @@
+require 'bits/execute_context'
+
 module Bits
   class Provider
     class << self
@@ -24,6 +26,12 @@ module Bits
 
     def remove(atom)
       raise "not implemented: remove"
+    end
+
+    def execute(&block)
+      raise "Missing user from namespace" if ns[:user].nil?
+      context = ExecuteContext.new ns[:user]
+      return context.instance_eval(&block)
     end
   end
 

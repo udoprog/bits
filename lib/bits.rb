@@ -16,6 +16,7 @@ require 'bits/provider/portage'
 require 'bits/provider/homebrew'
 
 require 'bits/external_interface'
+require 'bits/user'
 
 module Bits
   class << self
@@ -89,7 +90,8 @@ module Bits
       command_klass, parser = subcommands[command]
       parser.order!
 
-      ns[:local_repository_dir] = setup_repository_dir ns
+      ns[:user] = setup_user
+      ns[:local_repository_dir] = setup_local_repository_dir ns
 
       command = command_klass.new ns
       providers = setup_providers available_providers, ns
@@ -100,7 +102,8 @@ module Bits
       return ARGV, command
     end
 
-    def setup_repository_dir(ns)
+    # Setup the path to the local repository directory.
+    def setup_local_repository_dir(ns)
       home = ENV['HOME']
       raise "HOME environment variable not defined" if home.nil?
       File.join home, '.bits'
@@ -124,12 +127,16 @@ module Bits
     end
 
     def setup_backend(ns)
+      cwd_dir = File.join Dir.pwd, 'bits'
       local_dir = ns[:local_repository_dir]
 
-      backends = []
-      #backends << LocalBackend.new('/usr/lib/bits')
-      backends << LocalBackend.new('./bits')
+      backends = Array.new
+
+      backends << LocalBackend.new(cwd_dir) if File.directory? cwd_dir
       backends << LocalBackend.new(local_dir) if File.directory? local_dir
+
+      raise "Bits backends available" if backends.empty?
+
       JoinBackend.new backends
     end
 

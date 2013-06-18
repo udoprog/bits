@@ -50,15 +50,19 @@ module Bits
       return Bits::Package.new(name, installed, candidate)
     end
 
-    def install_package(package)
-      unless run [EMERGE, package.atom]
-        raise "Could not install package '#{package.atom}'"
+    def install(package)
+      execute do
+        unless run [EMERGE, package.atom]
+          raise "Could not install package '#{package.atom}'"
+        end
       end
     end
 
-    def remove_package(package)
-      unless run [EMERGE, "--unmerge", package.atom]
-        raise "Could not remove package '#{package.atom}'"
+    def remove(package)
+      execute do
+        unless run [EMERGE, "--unmerge", package.atom]
+          raise "Could not remove package '#{package.atom}'"
+        end
       end
     end
 

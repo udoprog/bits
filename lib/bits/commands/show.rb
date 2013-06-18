@@ -32,11 +32,11 @@ module Bits
         return 1
       end
 
-      puts "Atom: #{p.bit.atom}"
       puts "PPPs:"
 
       p.ppps.each do |ppp|
         puts "  #{ppp.provider.id}:"
+        puts "    Atom: #{ppp.bit.atom}"
         puts "    Package: #{ppp.package}"
         puts "    Params: #{ppp.params.inspect}"
       end

@@ -1,10 +1,12 @@
-provide :python,
+provided_by :python,
   :atom => 'setuptools'
 
-provide :apt,
+provided_by :apt,
   :atom => 'python-setuptools',
   :compiled => true
 
-provide :portage,
+provided_by :portage,
   :atom => 'dev-python/setuptools',
   :compiled => true
+
+provided_for :homebrew => 'python'

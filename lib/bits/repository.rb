@@ -6,9 +6,10 @@ require 'bits/exceptions'
 
 module Bits
   class PPP
-    attr_accessor :provider, :package, :params
+    attr_accessor :bit, :provider, :package, :params
 
-    def initialize(provider, package, params)
+    def initialize(bit, provider, package, params)
+      @bit = bit
       @provider = provider
       @package = package
       @params = params
@@ -21,6 +22,7 @@ module Bits
     attr_accessor :providers, :backend
 
     def initialize(providers, backend)
+      @cache = {}
       @providers = providers
       @backend = backend
     end
@@ -49,14 +51,14 @@ module Bits
     def find_package(atom, criteria={})
       ppps = []
 
-      bit = iterate_packages(atom) do |provider, params|
+      iterate_packages(atom) do |bit, provider, params|
         begin
           package = provider.get_package(params[:atom])
         rescue MissingPackage
           next
         end
 
-        ppps << PPP.new(provider, package, params)
+        ppps << PPP.new(bit, provider, package, params)
       end
 
       if ppps.empty?
@@ -64,14 +66,15 @@ module Bits
         raise MissingProvidedPackage.new atom
       end
 
-      return PackageProxy.new bit, ppps, criteria
+      return PackageProxy.new ppps, criteria
     end
 
     private
 
     def load_bit(atom)
+      return @cache[atom] unless @cache[atom].nil?
       reader = backend.fetch(atom)
-      Bit.eval reader, atom
+      @cache[atom] = Bit.eval reader, atom
     end
 
     def find_provider(provider_id)
@@ -80,21 +83,40 @@ module Bits
 
     def iterate_packages(atom)
       bit = load_bit atom
+      bits = [[bit, []]]
 
-      bit.provider_ids.each do |provider_id|
-        provider = find_provider provider_id
+      while not bits.empty?
+        current_bit, path = bits.shift
 
-        if provider.nil? then
-          log.debug "No such provider: #{provider_id}"
-          next
+        path << current_bit.atom
+
+        current_bit.provider_ids.each do |provider_id|
+          provider = find_provider provider_id
+
+          if provider.nil? then
+            log.debug "No such provider: #{provider_id}"
+            next
+          end
+
+          params = current_bit.get_provides provider_id
+
+          raise "Not provided: #{provider_id}" if params.nil?
+
+          if params.kind_of? String
+            raise "Circular reference" if path.include? params
+            next_bit = load_bit params
+            bits << [next_bit, Array.new(path)]
+            next
+          end
+
+          params = {
+            :atom => (params[:atom] || current_bit.atom),
+            :compiled => (params[:compiled] || false),
+          }
+
+          yield [current_bit, provider, params]
         end
-
-        params = bit.get_params provider_id
-
-        yield [provider, params]
       end
-
-      bit
     end
   end
 end

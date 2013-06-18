@@ -67,14 +67,16 @@ module Bits
       return Bits::Package.new(package_atom, current, candidate)
     end
 
-    def install_package(package)
-      exit_code = Bits.spawn [PIP, 'install', package.atom]
-      raise "Could not install package '#{package.atom}'" unless exit_code == 0
+    def install(package)
+      execute do
+        spawn [PIP, 'install', package.atom]
+      end
     end
 
-    def remove_package(package)
-      exit_code = Bits.spawn [PIP, 'uninstall', package.atom]
-      raise "Could not remove package '#{package.atom}'" unless exit_code == 0
+    def remove(package)
+      execute do
+        spawn [PIP, 'uninstall', package.atom]
+      end
     end
 
     def to_s
