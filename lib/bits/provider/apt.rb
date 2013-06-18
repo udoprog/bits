@@ -1,4 +1,5 @@
 require 'bits/provider'
+require 'bits/provider_reporting'
 require 'bits/package'
 require 'bits/logging'
 require 'bits/spawn'
@@ -19,17 +20,18 @@ module Bits
   do
     include Bits::Logging
     include Bits::CommandProvider
+    include Bits::ProviderReporting
 
     APT_GET = 'apt-get'
 
     def self.check
       unless HAS_APT_NATIVE_EXT
-        log.debug "APT native extension not available"
+        check_error "APT native extension could not be loaded"
         return false
       end
 
       unless Apt::initialize
-        log.debug "APT native extension could not be initialized"
+        check_error "APT native extension could not be initialized"
         return false
       end
 

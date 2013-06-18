@@ -23,6 +23,7 @@ module Bits
 
       subcommands = Hash.new
       available_providers = Array.new
+      unavailable_providers = Array.new
 
       global = OptionParser.new do |global_opts|
         global_opts.banner = "Usage: bits <command> [options]"
@@ -45,18 +46,26 @@ module Bits
             klass.setup(opts)
           end
 
-          subcommands[id] = [klass, parser]
+          subcommands[klass.id] = [klass, parser]
         end
-
-        global_opts.separator "Providers:"
 
         Bits.providers.sort_by(&:to_s).each do |id, klass|
           if klass.check
             available_providers << klass
-            global_opts.separator "  #{klass.id}: #{klass.desc}"
           else
-            global_opts.separator "  #{klass.id}: #{klass.desc} (not available)"
+            unavailable_providers << klass
           end
+        end
+
+        global_opts.separator "Providers:"
+
+        available_providers.each do |klass|
+          global_opts.separator "  #{klass.id}: #{klass.desc}"
+        end
+
+        global_opts.separator "Unavailable providers:"
+        unavailable_providers.each do |klass|
+          global_opts.separator "  #{klass.id}: #{klass.last_check_error}"
         end
       end
 
@@ -64,14 +73,15 @@ module Bits
       command = ARGV.shift
 
       if command.nil? then
-        puts global.help
+        $stderr.puts global.help
         exit 0
       end
 
       command = command.to_sym
 
-      unless subcommands.has_key?(command) then
-        puts global.help
+      if subcommands[command].nil? then
+        $stderr.puts "No such command: #{command}"
+        $stderr.puts global.help
         exit 0
       end
 

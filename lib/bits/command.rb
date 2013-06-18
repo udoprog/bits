@@ -1,6 +1,7 @@
 require 'optparse'
 
 module Bits
+  # Baseclass for commands.
   class Command
     attr_reader :ns
 

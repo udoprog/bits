@@ -1,4 +1,5 @@
 require 'bits/provider'
+require 'bits/provider_reporting'
 require 'bits/command_provider'
 require 'bits/spawn'
 require 'bits/package'
@@ -16,15 +17,24 @@ module Bits
     include Bits::Logging
     include Bits::CommandProvider
     include Bits::ExternalInterface
+    include Bits::ProviderReporting
 
     PIP = 'pip'
     INDEX = 'https://pypi.python.org/pypi'
 
     def self.check
-      ok = true
-      ok &= self.check_command [PIP, '--version'], 'PIP'
-      ok &= self.setup_interface :python, :capabilities => [:pkg_resources]
-      ok
+      unless self.check_command [PIP, '--version'], 'PIP'
+        check_error "Could not execute '#{PIP} --version'"
+        return false
+      end
+
+      unless self.setup_interface :python, :capabilities => [:pkg_resources]
+        check_error "Could not setup require python interface"
+        return false
+      end
+
+      log.debug "python extensions is available"
+      true
     end
 
     def initialize(ns)

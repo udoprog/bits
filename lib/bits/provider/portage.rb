@@ -1,4 +1,5 @@
 require 'bits/provider'
+require 'bits/provider_reporting'
 require 'bits/command_provider'
 require 'bits/package'
 require 'bits/logging'
@@ -13,15 +14,24 @@ module Bits
     include Bits::Logging
     include Bits::CommandProvider
     include Bits::ExternalInterface
+    include Bits::ProviderReporting
 
     # bridge command
     EMERGE = 'emerge'
 
     def self.check
-      ok = true
-      ok &= self.check_command [EMERGE, '--version'], "EMERGE"
-      ok &= self.setup_interface :python, :capabilities => [:portage]
-      ok
+      unless self.check_command [EMERGE, '--version'], "EMERGE"
+        check_error "Could not execute '#{EMERGE} --version'"
+        return false
+      end
+
+      unless self.setup_interface :python, :capabilities => [:portage]
+        check_error "Could not setup require python interface"
+        return false
+      end
+
+      log.debug "portage is available"
+      true
     end
 
     def initialize(ns)

@@ -16,15 +16,17 @@ module Bits
   do
     include Bits::Logging
     include Bits::CommandProvider
+    include Bits::ProviderReporting
 
     BREW = 'apt-get'
 
     def self.check
       unless HAS_HOMEBREW
-        log.debug "homebrew does not seem to be available on this system"
+        check_error "homebrew is not available on this system"
         return false
       end
 
+      log.debug "homebrew is available"
       true
     end
 
