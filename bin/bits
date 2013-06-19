@@ -1,7 +1,5 @@
 #!/usr/bin/env ruby
 
-require 'rubygems'
-
 if __FILE__ == $0
     lib = File.expand_path File.join('..', '..', 'lib'), $0
 
@@ -10,7 +8,13 @@ if __FILE__ == $0
         bin = File.expand_path File.join('..', 'bin'), lib
         ENV['PATH']="#{bin}:#{ENV['PATH']}"
     end
-
-    require 'bits'
-    exit Bits::main(ARGV)
 end
+
+begin
+    require 'bits'
+rescue LoadError
+    require 'rubygems'
+    require 'bits'
+end
+
+exit Bits::main(ARGV)
