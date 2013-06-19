@@ -11,7 +11,7 @@ module Bits
     GIT = 'git'
     CLONE_URL = 'https://github.com/udoprog/bits-repo'
 
-    def self.setup(opts)
+    def setup(opts)
       opts.banner = "Usage: bits sync"
       opts.separator ""
       opts.separator "Sync local repository"

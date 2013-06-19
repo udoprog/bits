@@ -69,13 +69,17 @@ module Bits
 
     def install(package)
       execute do
-        spawn [PIP, 'install', package.atom]
+        unless run [PIP, 'install', package.atom], :superuser => true
+          raise "Could not install package '#{package.atom}'"
+        end
       end
     end
 
     def remove(package)
       execute do
-        spawn [PIP, 'uninstall', package.atom]
+        unless run [PIP, 'uninstall', package.atom], :superuser => true
+          raise "Could not remove package '#{package.atom}'"
+        end
       end
     end
   end

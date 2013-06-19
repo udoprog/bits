@@ -7,9 +7,9 @@ module Bits
     end
 
     def spawn(args, params={})
-      root = params[:root] || false
+      superuser = params[:superuser] || false
 
-      if root and not @user.superuser?
+      if superuser and not @user.superuser?
         Bits.spawn [SUDO] + args, params
       else
         Bits.spawn args, params

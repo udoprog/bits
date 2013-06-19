@@ -5,6 +5,10 @@ module Bits
   class Command
     attr_reader :ns
 
+    def setup(opts)
+      raise "not implemented: setup"
+    end
+
     def initialize(ns)
       @ns = ns
     end

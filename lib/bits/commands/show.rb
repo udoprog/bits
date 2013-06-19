@@ -6,7 +6,7 @@ module Bits
   define_command :show, :desc => "Show a package" do
     include Bits::Logging
 
-    def self.setup(opts)
+    def setup(opts)
       opts.banner = "Usage: bits show <bit>"
       opts.separator ""
       opts.separator "Show information about the specified bit."

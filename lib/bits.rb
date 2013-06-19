@@ -43,12 +43,7 @@ module Bits
 
         Bits.commands.values.sort_by{|c| c.command_id.to_s}.each do |klass|
           global_opts.separator "  #{klass.command_id}: #{klass.desc}"
-
-          parser = OptionParser.new do |opts|
-            klass.setup(opts)
-          end
-
-          subcommands[klass.command_id] = [klass, parser]
+          subcommands[klass.command_id] = klass
         end
 
         Bits.providers.values.sort_by{|p| p.provider_id.to_s}.each do |provider_class|
@@ -87,8 +82,14 @@ module Bits
         exit 0
       end
 
-      command_klass, parser = subcommands[command]
-      parser.order!
+      command_klass = subcommands[command]
+      command = command_klass.new ns
+
+      command_parser = OptionParser.new do |opts|
+        command.setup opts
+      end
+
+      command_parser.order!
 
       ns[:user] = setup_user
       ns[:local_repository_dir] = setup_local_repository_dir ns

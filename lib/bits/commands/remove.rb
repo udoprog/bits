@@ -5,7 +5,7 @@ module Bits
   define_command :remove, :desc => "Remove a package" do
     include Bits::Logging
 
-    def self.setup(opts)
+    def setup(opts)
       opts.banner = "Usage: bits remove <bit>"
     end
 

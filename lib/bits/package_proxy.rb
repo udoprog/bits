@@ -14,7 +14,7 @@ module Bits
 
     # Check if the following set of parameters matches the specified criteria.
     def matches_criteria?(params)
-      criteria.all?{|key, value| params[key] == value}
+      criteria.all?{|key, value| value.nil? or params[key] == value}
     end
 
     def dependencies
@@ -23,7 +23,7 @@ module Bits
 
     def matching_ppps
       ppps.select do |ppp|
-        matches_criteria? ppp.params
+        matches_criteria? ppp.parameters
       end
     end
 
