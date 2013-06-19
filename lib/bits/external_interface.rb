@@ -137,7 +137,9 @@ module Bits
           return interfaces[id]
         end
 
-        command = ["bits-#{id}"]
+        libexec_path = path_to_libexec "bits-#{id}"
+
+        command = [libexec_path]
 
         stdout_r, stdout_w = IO.pipe
         stdin_r, stdin_w = IO.pipe
@@ -171,6 +173,10 @@ module Bits
         end
 
         interfaces[id] = interface
+      end
+
+      def path_to_libexec(name)
+        File.join File.dirname(File.expand_path(__FILE__)), File.join('..', 'libexec', name)
       end
     end
 

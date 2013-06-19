@@ -15,9 +15,10 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir.glob('bin/*') +
                Dir.glob('lib/**/*.rb') +
+               Dir.glob('lib/libexec/bits-*') +
                Dir.glob('ext/**/*/*.{cpp,h,rb}')
 
-  spec.executables = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
+  spec.executables = ['bits']
   spec.test_files = spec.files.grep(%r{^(test|spec|features)/})
 
   spec.require_paths = ["lib"]
