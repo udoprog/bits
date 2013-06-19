@@ -6,13 +6,13 @@ require 'bits/exceptions'
 
 module Bits
   class PPP
-    attr_accessor :bit, :provider, :package, :params, :path
+    attr_accessor :bit, :provider, :package, :parameters, :path
 
-    def initialize(bit, provider, package, params, path)
+    def initialize(bit, provider, package, parameters, path)
       @bit = bit
       @provider = provider
       @package = package
-      @params = params
+      @parameters = parameters
       @path = path
     end
   end
@@ -31,15 +31,15 @@ module Bits
     def find_package(atom, criteria={})
       ppps = []
 
-      iterate_packages(atom) do |bit, provider, params, path|
+      iterate_packages(atom) do |bit, atom, provider, parameters, path|
         begin
-          package = provider.query(params[:atom])
+          package = provider.query(atom)
         rescue MissingPackage
-          log.warn "No such atom '#{params[:atom]}' for provider '#{provider.provider_id}'"
+          log.warn "No such atom '#{atom}' for provider '#{provider.provider_id}'"
           next
         end
 
-        ppps << PPP.new(bit, provider, package, params, path)
+        ppps << PPP.new(bit, provider, package, parameters, path)
       end
 
       if ppps.empty?
@@ -100,12 +100,13 @@ module Bits
           if provider_data.kind_of? BitParameters
             params = provider_data.parameters
 
+            atom = (params[:atom] || current_bit.atom)
+
             params = {
-              :atom => (params[:atom] || current_bit.atom),
               :compiled => (params[:compiled] || false),
             }
 
-            yield [current_bit, provider, params, path]
+            yield [current_bit, atom, provider, params, path]
             next
           end
 

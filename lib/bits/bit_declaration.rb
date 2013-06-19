@@ -7,6 +7,10 @@ module Bits
     def initialize(atom)
       @atom = atom
     end
+
+    def to_s
+      "<BitReference #{@atom}>"
+    end
   end
 
   class BitParameters
@@ -14,6 +18,10 @@ module Bits
 
     def initialize(parameters)
       @parameters = parameters
+    end
+
+    def to_s
+      "<BitParameters #{@parameters}>"
     end
   end
 

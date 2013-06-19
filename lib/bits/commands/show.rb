@@ -22,11 +22,11 @@ module Bits
 
       repository = ns[:repository]
 
-      params = {}
-      params[:compiled] = ns[:compiled] if ns.has_key? :compiled
+      criteria = {}
+      criteria[:compiled] = ns[:compiled] if ns.has_key? :compiled
 
       begin
-        p = repository.find_package atom, params
+        p = repository.find_package atom, criteria
       rescue MissingBit
         puts "No such atom '#{atom}'"
         return 1
@@ -36,9 +36,11 @@ module Bits
 
       p.ppps.each do |ppp|
         puts "  #{ppp.provider.provider_id}:"
-        puts "    Bit: #{ppp.bit}"
-        puts "    Package: #{ppp.package}"
-        puts "    Params: #{ppp.params.inspect}"
+        puts "    Bit: #{ppp.bit.atom}"
+        puts "    Package Atom: #{ppp.package.atom}"
+        puts "    Installed: #{ppp.package.installed_s}"
+        puts "    Candidate: #{ppp.package.candidate_s}"
+        puts "    Parameters: #{ppp.parameters}"
       end
 
       return 0

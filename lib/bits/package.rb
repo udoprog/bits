@@ -8,6 +8,16 @@ module Bits
       @candidate = candidate
     end
 
+    def installed_s
+      return "(not installed)" if installed.nil?
+      installed
+    end
+
+    def candidate_s
+      return "(no candidate)" if candidate.nil?
+      candidate
+    end
+
     def to_s
       installed_s = @installed || "(not installed)"
       candidate_s = @candidate || "(no candidate)"
