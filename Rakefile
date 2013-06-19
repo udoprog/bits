@@ -27,7 +27,7 @@ EXTENSIONS.each do |path|
     end
 
     if File.file? source
-      mkdir target_dir
+      mkdir target_dir unless File.directory? target_dir
       cp source, target
     end
   end

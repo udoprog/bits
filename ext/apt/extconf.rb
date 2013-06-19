@@ -9,4 +9,4 @@ if not reqs.all? then
   exit 0
 end
 
-create_makefile 'ext/apt/apt_ext', 'ext/apt'
+create_makefile 'apt/apt_ext'
