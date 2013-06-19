@@ -131,8 +131,6 @@ module Bits
       backends << LocalBackend.new(cwd_dir) if File.directory? cwd_dir
       backends << LocalBackend.new(local_dir) if File.directory? local_dir
 
-      raise "Bits backends available" if backends.empty?
-
       JoinBackend.new backends
     end
 
