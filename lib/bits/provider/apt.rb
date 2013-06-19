@@ -39,7 +39,7 @@ module Bits
       true
     end
 
-    def get_package(atom)
+    def query(atom)
       result = Apt::Cache::policy(atom)
 
       raise MissingPackage.new atom if result.empty?

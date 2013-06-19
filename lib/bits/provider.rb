@@ -16,8 +16,8 @@ module Bits
       @ns = ns
     end
 
-    def info(atom)
-      raise "not implemented: info"
+    def query(atom)
+      raise "not implemented: query"
     end
 
     def install(atom)

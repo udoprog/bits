@@ -1,16 +1,32 @@
 module Bits
+  class BitReference
+    attr_reader :atom
+
+    def initialize(atom)
+      @atom = atom
+    end
+  end
+
+  class BitParameters
+    attr_reader :parameters
+
+    def initialize(parameters)
+      @parameters = parameters
+    end
+  end
+
   # Class used to manage state of a bit declaration file.
   class BitDeclaration
-    attr_accessor :provides, :dependencies
+    attr_accessor :provider_data, :dependencies
 
     def initialize
-      @provides = {}
+      @provider_data = {}
       @dependencies = {}
     end
 
     # Used inside bit declaration.
     def provided_by(provider_id, params={})
-      @provides[provider_id] = params
+      @provider_data[provider_id] = BitParameters.new params
     end
 
     # Used inside bit declaration.
@@ -18,7 +34,7 @@ module Bits
     def provided_for(params={})
       params.each do |key, value|
         key = key.to_sym
-        @provides[key] = value
+        @provider_data[key] = BitReference.new value
       end
     end
 

@@ -39,7 +39,7 @@ module Bits
       @client = interfaces[:python]
     end
 
-    def get_package(package_name)
+    def query(package_name)
       type, info = @client.request :portage_info, :package => package_name
       raise "Expected info response but got: #{type}" unless type == :info
 

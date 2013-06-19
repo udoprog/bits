@@ -33,8 +33,9 @@ module Bits
 
       iterate_packages(atom) do |bit, provider, params, path|
         begin
-          package = provider.get_package(params[:atom])
+          package = provider.query(params[:atom])
         rescue MissingPackage
+          log.warn "No such atom '#{params[:atom]}' for provider '#{provider.provider_id}'"
           next
         end
 
@@ -42,7 +43,6 @@ module Bits
       end
 
       if ppps.empty?
-        log.warn "Could not find atom '#{atom}'"
         raise MissingProvidedPackage.new atom
       end
 
@@ -59,42 +59,57 @@ module Bits
     end
 
     def iterate_packages(atom)
-      bit = load_bit atom
-      bits = [[bit, [], nil]]
+      references = [[[], atom, nil]]
 
-      while not bits.empty?
-        current_bit, path, filter = bits.shift
+      while not references.empty?
+        path, atom, filter = references.shift
+
+        if path.include? atom
+          raise "Circular reference: #{path.inspect.join ' -> '}"
+        end
+
+        current_bit = load_bit atom
 
         path << current_bit.atom
 
         # match all the providers that is specified by the bit and if
         # provider_filter is defined, explicitly match that too.
         matching = providers.select do |p|
-          current_bit.provided_by?(p.provider_id) and
+          current_bit.has_provider?(p.provider_id) and
           (filter.nil? or filter == p.provider_id)
         end
 
         raise "No matching providers: #{current_bit}" if matching.empty?
 
+        # for each matching provider, find the data associated with this
+        # provider and bit.
         matching.each do |provider|
-          p = current_bit.get_provides provider.provider_id
+          provider_data = current_bit.get_provider_data provider.provider_id
 
-          if p.kind_of? String
-            if path.include? p
-              raise "Circular reference: #{path.inspect}"
-            end
+          if provider_data.kind_of? BitReference
+            references << [
+              Array.new(path),
+              provider_data.atom,
+              # only match for this specified provider.
+              provider.provider_id
+            ]
 
-            next_bit = load_bit p
-            bits << [next_bit, Array.new(path), provider.provider_id]
             next
           end
 
-          params = {
-            :atom => (p[:atom] || current_bit.atom),
-            :compiled => (p[:compiled] || false),
-          }
+          if provider_data.kind_of? BitParameters
+            params = provider_data.parameters
 
-          yield [current_bit, provider, params, path]
+            params = {
+              :atom => (params[:atom] || current_bit.atom),
+              :compiled => (params[:compiled] || false),
+            }
+
+            yield [current_bit, provider, params, path]
+            next
+          end
+
+          raise "Unknown provider data '#{data}'"
         end
       end
     end

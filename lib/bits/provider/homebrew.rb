@@ -30,7 +30,7 @@ module Bits
       true
     end
 
-    def get_package(atom)
+    def query(atom)
       begin
         f = Formula.factory(atom)
       rescue FormulaUnavailableError

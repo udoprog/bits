@@ -61,7 +61,7 @@ module Bits
       return result[0]
     end
 
-    def get_package(package_atom)
+    def query(package_atom)
       candidate = get_candidate_version package_atom
       current = get_installed_version package_atom
       return Bits::Package.new(package_atom, current, candidate)
