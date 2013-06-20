@@ -14,6 +14,7 @@ require 'bits/commands/setup'
 require 'bits/commands/show'
 require 'bits/commands/sync'
 require 'bits/commands/query'
+require 'bits/commands/manifest'
 
 require 'bits/provider/apt'
 require 'bits/provider/homebrew'
@@ -24,6 +25,8 @@ require 'bits/provider/rubygems'
 module Bits
   class << self
     include Bits::Logging
+
+    DEFAULT_COMMAND = :manifest
 
     def parse_options(args)
       ns = {}
@@ -74,11 +77,7 @@ module Bits
       global.order!
       command = ARGV.shift
 
-      if command.nil? then
-        $stderr.puts global.help
-        exit 0
-      end
-
+      command = DEFAULT_COMMAND if command.nil?
       command = command.to_sym
 
       if subcommands[command].nil? then

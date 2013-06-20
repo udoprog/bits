@@ -5,9 +5,10 @@ module Bits
   # This allows for eager loading and lazy lookup of if a specific atom can be
   # considered as 'installed' or not.
   class PackageProxy
-    attr_accessor :ppps, :criteria
+    attr_accessor :atom, :ppps, :criteria
 
-    def initialize(ppps, criteria)
+    def initialize(atom, ppps, criteria)
+      @atom = atom
       @ppps = ppps
       @criteria = criteria
     end

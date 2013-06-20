@@ -46,7 +46,7 @@ module Bits
         raise MissingProvidedPackage.new atom
       end
 
-      return PackageProxy.new ppps, criteria
+      return PackageProxy.new atom, ppps, criteria
     end
 
     private

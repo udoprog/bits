@@ -153,13 +153,7 @@ rescue RequestError => e
 end
 
 def main
-    while true
-        begin
-            line = $stdin.readline
-        rescue EOFError
-            break
-        end
-
+    $stdin.each do |line|
         response = guarded_handle_request line
         $stdout.puts JSON.dump response
         $stdout.flush

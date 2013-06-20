@@ -40,7 +40,7 @@ module Bits
         puts "    Package Atom: #{ppp.package.atom}"
         puts "    Installed: #{ppp.package.installed_s}"
         puts "    Candidate: #{ppp.package.candidate_s}"
-        puts "    Parameters: #{ppp.parameters}"
+        puts "    Parameters: #{ppp.parameters.inspect}"
       end
 
       return 0
