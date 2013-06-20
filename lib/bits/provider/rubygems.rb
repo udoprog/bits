@@ -11,9 +11,10 @@ module Bits
   do
     include Bits::Logging
     include Bits::CommandProvider
+    include Bits::ExternalInterface
     include Bits::ProviderReporting
 
-    BREW = 'apt-get'
+    GEM = 'gem'
 
     def self.check
       unless HAS_RUBYGEMS
@@ -35,7 +36,7 @@ module Bits
 
     def install(package)
       execute do
-        unless run [BREW, 'install', package.atom]
+        unless run [GEM, 'install', package.atom]
           raise "Could not install package '#{package.atom}'"
         end
       end
@@ -43,7 +44,7 @@ module Bits
 
     def remove(package)
       execute do
-        unless spawn [BREW, 'uninstall', package.atom]
+        unless spawn [GEM, 'uninstall', package.atom]
           raise "Could not remove package '#{package.atom}'"
         end
       end

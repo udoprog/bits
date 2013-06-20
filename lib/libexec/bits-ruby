@@ -1,0 +1,127 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'json'
+
+HAS_RUBYGEMS = true
+
+$old = Array.new $:
+
+HAS_HOMEBREW = begin
+  $: << '/usr/local/Library/Homebrew'
+  require 'global'
+  require 'formula'
+  true
+rescue LoadError
+  $:.replace $old
+  false
+end
+
+class RequestError < Exception; end
+
+class MissingRequestKey < RequestError
+    def initialize(key)
+        super "Missing key '#{key}' in request"
+    end
+end
+
+def ping_handler(request)
+    capabilities = []
+
+    capabilities << :homebrew if HAS_HOMEBREW
+    capabilities << :rubygems if HAS_RUBYGEMS
+
+    return {
+        :__type__ => "pong",
+        :capabilities => capabilities
+    }
+end
+
+def homebrew_info_handler(request)
+    package = request['package']
+
+    if package.nil?
+        raise MissingRequestKey.new 'package'
+    end
+
+    begin
+        f = Formula.factory(package)
+    rescue FormulaUnavailableError
+        raise MissingPackage.new(atom)
+    end
+
+    if f.nil?
+        return {
+            :__type__ => :missing_package,
+            :package => package,
+        }
+    end
+
+    {
+        :__type__ => :info,
+        :installed => f.installed_version,
+        :candidate => f.version,
+    }
+end
+
+HANDLERS = {
+    :ping => :ping_handler,
+    :homebrew_info => :homebrew_info_handler,
+}
+
+def handle_request(line)
+    begin
+        request = JSON.load line
+    rescue
+        raise RequestError.new "Could not decode request, expected type: json"
+    end
+
+    request_type = request['__type__']
+
+    if request_type.nil?
+        raise RequestError.new "Missing 'type' in request"
+    end
+
+    request_type = request_type.to_sym
+
+    handler_name = HANDLERS[request_type]
+
+    if handler_name.nil?
+        raise RequestError.new "No handler for type '#{request_type}'"
+    end
+
+    begin
+        handler = method(handler_name)
+    rescue NameError
+        raise RequestError.new "No method for handler '#{request_type}'"
+    end
+
+    handler.call request
+end
+
+def guarded_handle_request(line)
+    handle_request line
+rescue RequestError => e
+    return {
+        :__type__ => "error",
+        :text => e.to_s,
+    }
+end
+
+def main
+    while true
+        begin
+            line = $stdin.readline
+        rescue EOFError
+            break
+        end
+
+        response = guarded_handle_request line
+        $stdout.puts JSON.dump response
+        $stdout.flush
+    end
+
+    return 0
+end
+
+exit main

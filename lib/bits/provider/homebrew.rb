@@ -1,4 +1,8 @@
-$old = Array.new $:
+require 'bits/logging'
+require 'bits/command_provider'
+require 'bits/provider_reporting'
+require 'bits/external_interface'
+
 
 HAS_HOMEBREW = begin
   $: << '/usr/local/Library/Homebrew'
@@ -17,27 +21,32 @@ module Bits
     include Bits::Logging
     include Bits::CommandProvider
     include Bits::ProviderReporting
+    include Bits::ExternalInterface
 
-    BREW = 'apt-get'
+    BREW = 'brew'
 
     def self.check
-      unless HAS_HOMEBREW
-        check_error "homebrew is not available on this system"
+      unless self.setup_interface :ruby, :capabilities => [:homebrew]
+        check_error "Could not setup required interface"
         return false
       end
 
-      log.debug "homebrew is available"
+      log.debug "Homebrew is available"
       true
     end
 
-    def query(atom)
-      begin
-        f = Formula.factory(atom)
-      rescue FormulaUnavailableError
-        raise MissingPackage.new(atom)
-      end
+    def initialize(ns)
+      super ns
+      @client = interfaces[:ruby]
+    end
 
-      Bits::Package.new(atom, f.installed_version, f.version)
+    def query(atom)
+      type, info = @client.request :homebrew_info, :package => atom
+      raise MissingPackage.new atom if type == :missing_package
+      raise "Expected info response but got: #{type}" unless type == :info
+      installed = info['installed']
+      candidate = info['candidate']
+      Bits::Package.new(atom, installed, candidate)
     end
 
     def install(package)

@@ -20,7 +20,7 @@ class RequestError(Exception):
     pass
 
 
-class MissingRequestKey(Exception):
+class MissingRequestKey(RequestError):
     def __init__(self, key):
         super(MissingRequestKey, self).__init__(
             "Missing key '{0}' in request".format(key))
