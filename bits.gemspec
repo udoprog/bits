@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'bits/version'
 
 Gem::Specification.new do |spec|
-  spec.name = "bits"
+  spec.name = "bits-installer"
   spec.version = Bits::VERSION
   spec.authors = ["John-John Tedro"]
   spec.email = ["johnjohn.tedro@gmail.com"]
