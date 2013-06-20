@@ -4,6 +4,7 @@ require 'bits/command_provider'
 require 'bits/package'
 require 'bits/logging'
 require 'bits/spawn'
+require 'bits/external_interface'
 
 require 'json'
 

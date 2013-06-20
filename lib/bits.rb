@@ -7,14 +7,15 @@ require 'bits/repository'
 
 require 'bits/commands/install'
 require 'bits/commands/remove'
+require 'bits/commands/setup'
 require 'bits/commands/show'
 require 'bits/commands/sync'
-require 'bits/commands/setup'
 
-require 'bits/provider/python'
 require 'bits/provider/apt'
-require 'bits/provider/portage'
 require 'bits/provider/homebrew'
+require 'bits/provider/portage'
+require 'bits/provider/python'
+require 'bits/provider/rubygems'
 
 require 'bits/external_interface'
 require 'bits/user'
