@@ -9,7 +9,7 @@ module Bits
     end
 
     def to_s
-      "<BitReference #{@atom}>"
+      "<BitReference '#{@atom}'>"
     end
   end
 
@@ -22,6 +22,19 @@ module Bits
 
     def to_s
       "<BitParameters #{@parameters}>"
+    end
+  end
+
+  class BitDependency
+    attr_reader :atom, :parameters
+
+    def initialize(atom, parameters)
+      @atom = atom
+      @parameters = parameters
+    end
+
+    def to_s
+      "<BitDependency '#{@atom}' parameters=#{@parameters}>"
     end
   end
 
@@ -108,7 +121,11 @@ module Bits
             raise "Expected :atom to be not null in dependency"
           end
 
-          h[atom] = BitParameters.new item
+          unless h[atom].nil?
+            raise "Dependency already specified: #{atom}"
+          end
+
+          h[atom] = BitDependency.new atom, item
         end
       end
 

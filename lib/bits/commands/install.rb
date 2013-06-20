@@ -31,10 +31,11 @@ module Bits
 
       repository = ns[:repository]
 
-      parameters = {}
-      parameters[:compiled] = ns[:compiled] if ns.has_key? :compiled
+      criteria = {
+        :compiled => ns[:compiled]
+      }
 
-      p = repository.find_package atom, parameters
+      p = repository.find_package atom, criteria
 
       if p.installed? and not ns[:force]
         log.info "Already installed '#{atom}' using provider(s): #{p.providers_s}"

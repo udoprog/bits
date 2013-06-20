@@ -9,6 +9,7 @@ require 'bits/commands/install'
 require 'bits/commands/remove'
 require 'bits/commands/show'
 require 'bits/commands/sync'
+require 'bits/commands/setup'
 
 require 'bits/provider/python'
 require 'bits/provider/apt'
