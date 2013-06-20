@@ -8,7 +8,7 @@ module Bits
     class Interface
       include Bits::Logging
 
-      attr_reader :capabilities
+      attr_reader :id, :capabilities, :exitstatus
 
       def initialize(id, args, stdin, stdout, pid)
         @id = id
@@ -17,13 +17,13 @@ module Bits
         @stdout = stdout
         @pid = pid
         @capabilities = []
+        @exitstatus = nil
       end
 
       # end the child process by closing stdin.
       def end
         @stdin.close
-        Process.wait @pid
-        $?
+        reap_child
       end
 
       def info(atom)
@@ -71,14 +71,20 @@ module Bits
       private
 
       def reap_child
+        log.debug "Reaping interface: #{id}"
+
         @stdin.close unless @stdin.nil?
         @stdout.close unless @stdout.nil?
 
         @stdin = nil
         @stdout = nil
 
-        # don't hang since write might have reaped it already.
-        Process.wait @pid, Process::WNOHANG
+        if @exitstatus.nil?
+          log.debug "Waiting for interface to exit: #{id}"
+          # don't hang since write might have reaped it already.
+          Process.wait @pid
+          @exitstatus = $?.exitstatus
+        end
       end
 
       def write(data)

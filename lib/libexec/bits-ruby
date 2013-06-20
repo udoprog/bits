@@ -5,15 +5,17 @@ require 'json'
 
 HAS_RUBYGEMS = true
 
-$old = Array.new $:
+$load_path = Array.new $:
 
 HAS_HOMEBREW = begin
   $: << '/usr/local/Library/Homebrew'
+
   require 'global'
   require 'formula'
+
   true
 rescue LoadError
-  $:.replace $old
+  $:.replace $load_path
   false
 end
 
@@ -37,6 +39,51 @@ def ping_handler(request)
     }
 end
 
+def rubygems_info_handler(request)
+    package = request['package']
+
+    if package.nil?
+        raise MissingRequestKey.new 'package'
+    end
+
+    candidate_version = rubygems_candidate_version package
+    installed_version = rubygems_installed_version package
+
+    if candidate_version.nil? and installed_version.nil?
+        return {
+            :__type__ => :missing_spec,
+            :package => package,
+        }
+    end
+
+    {
+        :__type__ => :info,
+        :installed => installed_version,
+        :candidate => candidate_version,
+    }
+end
+
+def rubygems_candidate_version package
+    dep = Gem::Dependency.new package
+    fetcher = Gem::SpecFetcher.fetcher
+    spec_tuples = fetcher.find_matching dep
+
+    if spec_tuples.empty?
+        return nil
+    end
+
+    spec, source_uri = spec_tuples[0]
+    _, version, _ = spec
+
+    version.version
+end
+
+def rubygems_installed_version package
+    result = Gem.source_index.find_name(package)
+    return nil if result.empty?
+    result.first.version.version
+end
+
 def homebrew_info_handler(request)
     package = request['package']
 
@@ -47,10 +94,6 @@ def homebrew_info_handler(request)
     begin
         f = Formula.factory(package)
     rescue FormulaUnavailableError
-        raise MissingPackage.new(atom)
-    end
-
-    if f.nil?
         return {
             :__type__ => :missing_package,
             :package => package,
@@ -67,6 +110,7 @@ end
 HANDLERS = {
     :ping => :ping_handler,
     :homebrew_info => :homebrew_info_handler,
+    :rubygems_info => :rubygems_info_handler,
 }
 
 def handle_request(line)

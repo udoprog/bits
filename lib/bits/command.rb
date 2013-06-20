@@ -31,6 +31,10 @@ module Bits
         @name = command_id.to_s.capitalize
         @desc = desc
 
+        def to_s
+          self.class.to_s
+        end
+
         class << self
           attr_reader :command_id, :name, :desc
 

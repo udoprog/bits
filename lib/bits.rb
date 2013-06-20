@@ -1,15 +1,19 @@
 require 'optparse'
 
-require 'bits/backend/local'
 require 'bits/backend/join'
+require 'bits/backend/local'
+require 'bits/external_interface'
+require 'bits/logging'
 require 'bits/package'
 require 'bits/repository'
+require 'bits/user'
 
 require 'bits/commands/install'
 require 'bits/commands/remove'
 require 'bits/commands/setup'
 require 'bits/commands/show'
 require 'bits/commands/sync'
+require 'bits/commands/query'
 
 require 'bits/provider/apt'
 require 'bits/provider/homebrew'
@@ -17,11 +21,10 @@ require 'bits/provider/portage'
 require 'bits/provider/python'
 require 'bits/provider/rubygems'
 
-require 'bits/external_interface'
-require 'bits/user'
-
 module Bits
   class << self
+    include Bits::Logging
+
     def parse_options(args)
       ns = {}
 
@@ -93,16 +96,17 @@ module Bits
 
       command_parser.order!
 
-      ns[:user] = setup_user
-      ns[:local_repository_dir] = setup_local_repository_dir ns
-
-      command = command_klass.new ns
+      local_dir = setup_local_repository_dir ns
       providers = setup_providers available_providers, ns
-      backend = setup_backend ns
+      backend = setup_backend local_dir
+
+      ns[:user] = setup_user
+      ns[:local_repository_dir] = local_dir
+      ns[:providers] = providers
 
       ns[:repository] = Bits::Repository.new(providers, backend)
 
-      return ARGV, command
+      return ARGV, command, command_parser
     end
 
     # Setup the path to the local repository directory.
@@ -125,9 +129,8 @@ module Bits
       end
     end
 
-    def setup_backend(ns)
+    def setup_backend(local_dir)
       cwd_dir = File.join Dir.pwd, 'bits'
-      local_dir = ns[:local_repository_dir]
 
       backends = Array.new
 
@@ -140,10 +143,14 @@ module Bits
     def main(args)
       @log = setup_logging
 
-      args, command = parse_options(args)
+      args, command, command_parser = parse_options(args)
 
       begin
         command.entry args
+      rescue InvalidArgument => e
+        $stderr.puts "Argument Error: #{e}"
+        $stderr.puts command_parser.help
+        return 1
       ensure
         Bits::ExternalInterface.close_interfaces
       end

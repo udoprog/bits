@@ -3,17 +3,6 @@ require 'bits/command_provider'
 require 'bits/provider_reporting'
 require 'bits/external_interface'
 
-
-HAS_HOMEBREW = begin
-  $: << '/usr/local/Library/Homebrew'
-  require 'global'
-  require 'formula'
-  true
-rescue LoadError
-  $:.replace $old
-  false
-end
-
 module Bits
   define_provider :homebrew, \
     :desc => "Provides interface for Homebrew" \

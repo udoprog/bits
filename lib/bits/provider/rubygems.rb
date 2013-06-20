@@ -1,10 +1,3 @@
-HAS_RUBYGEMS = begin
-  require 'rubygems'
-  true
-rescue LoadError
-  false
-end
-
 module Bits
   define_provider :rubygems, \
     :desc => "Provides interface for Rubygems" \
@@ -17,8 +10,8 @@ module Bits
     GEM = 'gem'
 
     def self.check
-      unless HAS_RUBYGEMS
-        check_error "rubygems is not available on this system"
+      unless self.setup_interface :ruby, :capabilities => [:rubygems]
+        check_error "Could not setup required interface"
         return false
       end
 
@@ -26,12 +19,18 @@ module Bits
       true
     end
 
-    def query(atom)
-      fetcher = Gem::SpecFetcher.fetcher
-      spec_tuples = fetcher.find_matching atom, true, false, false
-      puts spec_tuples
+    def initialize(ns)
+      super ns
+      @client = interfaces[:ruby]
+    end
 
-      Bits::Package.new(atom, f.installed_version, f.version)
+    def query(atom)
+      type, info = @client.request :rubygems_info, :package => atom
+      raise MissingPackage.new atom if type == :missing_package
+      raise "Expected info response but got: #{type}" unless type == :info
+      installed = info['installed']
+      candidate = info['candidate']
+      Bits::Package.new(atom, installed, candidate)
     end
 
     def install(package)
