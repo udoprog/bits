@@ -72,7 +72,7 @@ module Bits
 
       def reap_child
         log.debug "Reaping interface: #{id}"
-        return if @exitstatus.nil?
+        return unless @exitstatus.nil?
         log.debug "stdin=#{@stdin.inspect} stdout=#{@stdout.inspect}"
 
         @stdin.close

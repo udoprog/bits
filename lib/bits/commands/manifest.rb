@@ -29,6 +29,10 @@ module Bits
 
       manifest = YAML.load File.new(path)
 
+      unless manifest.kind_of? Hash
+        raise "Manifest is not of type Hash: #{path}"
+      end
+
       depends = manifest[:depends]
 
       criteria = {
