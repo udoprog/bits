@@ -37,8 +37,7 @@ module Bits
       true
     end
 
-    def initialize(ns)
-      super ns
+    def setup
       @client = XMLRPC::Client.new_from_uri(INDEX)
       @client.http_header_extra = {'Content-Type' => 'text/xml'}
       @python = self.class.interfaces[:python]

@@ -16,6 +16,14 @@ module Bits
       @ns = ns
     end
 
+    def setup
+      raise "not implemented: setup"
+    end
+
+    def sync
+      raise "not implemented: sync"
+    end
+
     def query(atom)
       raise "not implemented: query"
     end
@@ -64,7 +72,7 @@ module Bits
           attr_reader :provider_id, :desc, :name
 
           def to_s
-            "#<Bits::Provider::#{@name}>"
+            "Bits::Provider::#{@name}"
           end
         end
       end

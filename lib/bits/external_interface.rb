@@ -71,20 +71,20 @@ module Bits
       private
 
       def reap_child
+        return unless @exitstatus.nil?
+
         log.debug "Reaping interface: #{id}"
         return unless @exitstatus.nil?
         log.debug "stdin=#{@stdin.inspect} stdout=#{@stdout.inspect}"
 
-        @stdin.close
-        @stdout.close
+        Process::kill "INT", @pid
 
-        log.debug "Waiting for interface to exit: #{id} [#{$?.inspect}]"
+        log.debug "Waiting for interface to exit: #{id}"
+
         # don't hang since write might have reaped it already.
-
         Process.wait @pid
-        @exitstatus = $?.exitstatus
 
-        log.debug "done: #{id} exitstatus=#{@exitstatus}"
+        @exitstatus = $?.exitstatus
       end
 
       def write(data)

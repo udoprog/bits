@@ -5,30 +5,33 @@ require 'bits/exceptions'
 require 'fileutils'
 
 module Bits
-  define_command :sync, :desc => "sync local repository" do
+  define_command :sync, \
+    :desc => "sync local repository" \
+  do
     include Bits::Logging
 
     GIT = 'git'
     CLONE_URL = 'https://github.com/udoprog/bits-repo'
 
     def setup(opts)
-      opts.banner = "Usage: bits sync"
+      opts.banner = "Usage: bits #{switch}"
       opts.separator ""
       opts.separator "Sync local repository"
     end
 
     def entry(args)
-      dir = ns[:local_repository_dir]
+      repo_dir = ns[:repo_dir]
+      providers = ns[:providers]
 
-      setup_original dir unless File.directory? dir
+      clone repo_dir unless File.directory? repo_dir
 
-      Dir.chdir(dir) do
+      Dir.chdir(repo_dir) do
         Bits.spawn [GIT, 'pull', 'origin', 'master']
       end
     end
 
-    def setup_original(dir)
-      Bits.spawn [GIT, 'clone', CLONE_URL, dir]
+    def clone(repo_dir)
+      Bits.spawn [GIT, 'clone', CLONE_URL, repo_dir]
     end
   end
 end

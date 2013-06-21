@@ -137,18 +137,18 @@ def guarded_handle_request(line):
 
 
 def main(args):
-    while True:
-        try:
+    try:
+        while True:
             line = sys.stdin.readline()
-        except KeyboardInterrupt:
-            break
 
-        if not line:
-            break
+            if not line:
+                break
 
-        response = guarded_handle_request(line)
-        print >>sys.stdout, json.dumps(response)
-        sys.stdout.flush()
+            response = guarded_handle_request(line)
+            print >>sys.stdout, json.dumps(response)
+            sys.stdout.flush()
+    except KeyboardInterrupt:
+        pass
 
     return 0
 

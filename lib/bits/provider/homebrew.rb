@@ -24,9 +24,12 @@ module Bits
       true
     end
 
-    def initialize(ns)
-      super ns
+    def setup
       @client = interfaces[:ruby]
+    end
+
+    def sync
+      log.info "Does not know how to sync homebrew yet"
     end
 
     def query(atom)

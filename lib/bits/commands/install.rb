@@ -3,7 +3,9 @@ require 'bits/logging'
 require 'bits/installer_mixin'
 
 module Bits
-  define_command :install, :desc => 'Install a package' do
+  define_command :install, \
+    :desc => 'Install a package' \
+  do
     include Bits::Logging
     include Bits::InstallerMixin
 
@@ -11,7 +13,11 @@ module Bits
       ns[:force] = false
       ns[:compiled] = nil
 
-      opts.banner = "Usage: bits install <bit>"
+      opts.banner = "Usage: bits #{switch} <bit>"
+
+      opts.on('--[no-]compiled', "Insist on installing an already compiled variant or not") do |v|
+        ns[:compiled] = v
+      end
 
       setup_installer_opts opts
     end

@@ -19,9 +19,20 @@ module Bits
       true
     end
 
-    def initialize(ns)
-      super ns
+    def setup
       @client = interfaces[:ruby]
+    end
+
+    def sync
+      type, response = @client.request :rubygems_candidates
+
+      unless type == :candidates
+        raise "Expected rubygems_candidate response but got: #{type}"
+      end
+
+      candidates = response['candidates']
+
+      log.info "Synced #{candidates.size} gems"
     end
 
     def query(atom)

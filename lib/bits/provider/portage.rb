@@ -35,8 +35,7 @@ module Bits
       true
     end
 
-    def initialize(ns)
-      super ns
+    def setup
       @client = interfaces[:python]
     end
 

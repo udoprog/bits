@@ -27,7 +27,7 @@ class MissingRequestKey < RequestError
     end
 end
 
-def ping_handler(request)
+def ping_handler request
     capabilities = []
 
     capabilities << :homebrew if HAS_HOMEBREW
@@ -39,7 +39,7 @@ def ping_handler(request)
     }
 end
 
-def rubygems_info_handler(request)
+def rubygems_info_handler request
     package = request['package']
 
     if package.nil?
@@ -72,7 +72,7 @@ def rubygems_candidate_version package
         return nil
     end
 
-    spec, source_uri = spec_tuples[0]
+    spec, _ = spec_tuples[0]
     _, version, _ = spec
 
     version.version
@@ -84,7 +84,34 @@ def rubygems_installed_version package
     result.first.version.version
 end
 
-def homebrew_info_handler(request)
+def iterate_candidates
+  fetcher = Gem::SpecFetcher.fetcher
+
+  fetcher.list.each do |source_uri, spec_tuples|
+    spec_tuples.each do |spec_tuple|
+      atom, version, _ = spec_tuple
+      yield atom, version.version
+    end
+  end
+end
+
+def rubygems_candidates_handler request
+  candidates = Array.new
+
+  iterate_candidates do |atom, version|
+    candidates << {
+      :atom => atom,
+      :version => version,
+    }
+  end
+
+  {
+    :__type__ => :candidates,
+    :candidates => candidates,
+  }
+end
+
+def homebrew_info_handler request
     package = request['package']
 
     if package.nil?
@@ -111,6 +138,7 @@ HANDLERS = {
     :ping => :ping_handler,
     :homebrew_info => :homebrew_info_handler,
     :rubygems_info => :rubygems_info_handler,
+    :rubygems_candidates => :rubygems_candidates_handler,
 }
 
 def handle_request(line)
@@ -159,6 +187,8 @@ def main
         $stdout.flush
     end
 
+    return 0
+rescue Interrupt
     return 0
 end
 

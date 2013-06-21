@@ -39,6 +39,16 @@ module Bits
       true
     end
 
+    def setup; end
+
+    def sync
+      execute do
+        unless run [APT_GET, 'update']
+          raise "Could not update apt provider"
+        end
+      end
+    end
+
     def query(atom)
       result = Apt::Cache::policy(atom)
 

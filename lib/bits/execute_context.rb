@@ -16,6 +16,7 @@ module Bits
       end
     end
 
+    # Run a command and return a boolean indicating weither exitcode is 0
     def run(args, params={})
       params[:ignore_exitcode] = true
       spawn(args, params) == 0
