@@ -56,7 +56,7 @@ module Bits::Cache
       return {} unless File.file? path
 
       File.open path do |f|
-        return YAML.load_file f
+        return YAML.load f
       end
     end
   end

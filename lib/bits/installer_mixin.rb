@@ -30,7 +30,7 @@ module Bits::InstallerMixin
 
   # Resolve a hash of dependencies with a criteria to packages.
   # Returns [<packages>, error]
-  def resolve_packages(depends, criteria)
+  def resolve_dependencies(manifest, criteria)
     repository = ns[:repository]
 
     raise "No repository in namespace" if repository.nil?
@@ -38,29 +38,16 @@ module Bits::InstallerMixin
     packages = Array.new
     missing = Array.new
 
-    unless depends.kind_of? Array
-      raise ":depends should be a List"
-    end
-
-    depends.each do |spec|
-      unless spec.kind_of? Hash
-        raise "dependency should be of type Hash"
-      end
-
-      atom = spec[:atom]
-
-      if atom.nil?
-        raise "dependency must specify :atom"
-      end
-
+    manifest.depends.each do |dep|
       crit = Hash.new
-      crit = criteria[:compiled] unless criteria[:compiled].nil?
-      crit = spec[:compiled] unless spec[:compiled].nil?
+
+      crit.update criteria
+      crit.update dep.parameters
 
       begin
-        packages << repository.find_package(atom, crit)
+        packages << repository.find_package(dep.atom, crit)
       rescue Bits::MissingBit
-        missing << atom
+        missing << dep
       end
     end
 

@@ -47,9 +47,16 @@ module Bits
     end
 
     def sync
+      # TODO: currently fetching the candidate version is a very slow operation
+      # sinc the initial list of packages does not include it. This needs to
+      # be mitigated somehow.
+
+      log.warn "Syncing without candidate version information"
+
       t = Time.new
 
       sync_file = File.join ns[:bits_dir], "#{provider_id}.sync"
+
       last_sync = get_last_sync sync_file
 
       if last_sync.nil?
@@ -67,10 +74,19 @@ module Bits
     end
 
     def query(package_atom)
-      candidate = get_candidate_version package_atom
-      raise MissingPackage.new package_atom if candidate.nil?
+      candidate = @cache[package_atom]
+
+      candidate_version = if candidate.nil?
+        get_candidate_version package_atom
+      else
+        candidate['version']
+      end
+
+      raise MissingPackage.new package_atom if candidate_version.nil?
+
       current = get_installed_version package_atom
-      Bits::Package.new package_atom, current, candidate
+
+      Bits::Package.new package_atom, current, candidate_version
     end
 
     def install(package)
@@ -121,36 +137,41 @@ module Bits
     def read_partial(last_sync)
       result = @client.call :changelog, last_sync
 
+      log.info "PARTIAL: Syncing #{result.size} python packages"
+
       releases = Hash.new
 
       result.each do |name, version, timestamp, purpose|
         next if purpose != 'new release'
 
         releases[name] = {
-          :atom => name,
-          :candidate => version,
+          'atom' => name,
+          'version' => version,
         }
       end
 
       releases
     end
 
-    # TODO: works really slowly right now, fix it
     def read_full
       remote_packages = @client.call :list_packages
 
-      puts remote_packages.size
+      log.info "FULL: Syncing #{remote_packages.size} python packages"
 
       packages = Hash.new
 
       remote_packages.each do |name|
-        candidate = get_candidate_version name
+        # TODO: currently syncing candidate version is very slow. This needs
+        # to be mitigated.
+
+        #candidate = get_candidate_version name
+        candidate = "0.0.0"
 
         next if candidate.nil?
 
         packages[name] = {
-          :atom => name,
-          :candidate => candidate,
+          'atom' => name,
+          'version' => candidate,
         }
       end
 

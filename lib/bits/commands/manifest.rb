@@ -1,6 +1,7 @@
 require 'bits/command'
 require 'bits/logging'
 require 'bits/installer_mixin'
+require 'bits/manifest'
 require 'yaml'
 
 module Bits
@@ -27,13 +28,9 @@ module Bits
 
       raise "No manifest in path: #{path}" unless File.file? path
 
-      manifest = YAML.load File.new(path)
-
-      unless manifest.kind_of? Hash
-        raise "Manifest is not of type Hash: #{path}"
+      manifest = File.open(path) do |f|
+        Bits::Manifest.new YAML.load(f)
       end
-
-      depends = manifest[:depends]
 
       criteria = {
         :compiled => ns[:compiled]
@@ -41,24 +38,20 @@ module Bits
 
       log.info "Running manifest: #{path}"
 
-      unless depends.nil?
-        begin
-          packages = resolve_packages depends, criteria
-        rescue Bits::MissingDependencies => e
-          puts "Missing Dependencies:"
+      begin
+        packages = resolve_dependencies manifest, criteria
+      rescue Bits::MissingDependencies => e
+        puts "Missing Dependencies:"
 
-          e.missing.each do |m|
-            puts "  - #{m}"
-          end
-
-          return 1
+        e.missing.each do |dep|
+          puts "  - #{dep.atom}"
         end
 
-        packages.each do |package|
-          install_package package, force=ns[:force]
-        end
-      else
-        log.info "No dependencies specified"
+        return 1
+      end
+
+      packages.each do |package|
+        install_package package, force=ns[:force]
       end
 
       return 0

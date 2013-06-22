@@ -25,8 +25,15 @@ module Bits
 
       clone repo_dir unless File.directory? repo_dir
 
+      log.info "Syncing bits"
+
       Dir.chdir(repo_dir) do
         Bits.spawn [GIT, 'pull', 'origin', 'master']
+      end
+
+      providers.each do |provider|
+        log.info "Syncing provider: #{provider.to_s}"
+        provider.sync
       end
     end
 

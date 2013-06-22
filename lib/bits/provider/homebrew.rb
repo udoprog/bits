@@ -29,7 +29,7 @@ module Bits
     end
 
     def sync
-      log.info "Does not know how to sync homebrew yet"
+      log.warn "Does not know how to sync homebrew yet"
     end
 
     def query(atom)

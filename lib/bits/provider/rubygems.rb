@@ -40,7 +40,7 @@ module Bits
 
       candidates = response['candidates']
 
-      log.info "Synced #{candidates.size} gems"
+      log.info "Syncing #{candidates.size} gems"
 
       cache = candidates.inject({}){|h, i| h[i['atom']] = i; h}
 
