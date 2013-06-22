@@ -1,3 +1,9 @@
+require 'bits/logging'
+require 'bits/command_provider'
+require 'bits/external_interface'
+require 'bits/provider_reporting'
+require 'bits/cache'
+
 module Bits
   define_provider :rubygems, \
     :desc => "Provides interface for Rubygems" \
@@ -6,6 +12,7 @@ module Bits
     include Bits::CommandProvider
     include Bits::ExternalInterface
     include Bits::ProviderReporting
+    include Bits::Cache
 
     GEM = 'gem'
 
@@ -21,6 +28,7 @@ module Bits
 
     def setup
       @client = interfaces[:ruby]
+      @cache = setup_cache ns[:bits_dir], provider_id
     end
 
     def sync
@@ -33,14 +41,31 @@ module Bits
       candidates = response['candidates']
 
       log.info "Synced #{candidates.size} gems"
+
+      cache = candidates.inject({}){|h, i| h[i['atom']] = i; h}
+
+      @cache.set cache
+      @cache.save
     end
 
     def query(atom)
-      type, info = @client.request :rubygems_info, :package => atom
+      candidate = @cache[atom]
+
+      type, info = @client.request :rubygems_info, \
+        :package => atom, \
+        :remote => candidate.nil?
+
       raise MissingPackage.new atom if type == :missing_package
       raise "Expected info response but got: #{type}" unless type == :info
+
       installed = info['installed']
-      candidate = info['candidate']
+
+      candidate = if candidate.nil?
+        info['candidate']
+      else
+        candidate['version']
+      end
+
       Bits::Package.new(atom, installed, candidate)
     end
 
@@ -54,7 +79,7 @@ module Bits
 
     def remove(package)
       execute do
-        unless spawn [GEM, 'uninstall', package.atom]
+        unless run [GEM, 'uninstall', package.atom]
           raise "Could not remove package '#{package.atom}'"
         end
       end

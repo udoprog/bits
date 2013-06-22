@@ -40,21 +40,20 @@ def ping_handler request
 end
 
 def rubygems_info_handler request
+    remote = request['remote']
     package = request['package']
 
     if package.nil?
         raise MissingRequestKey.new 'package'
     end
 
-    candidate_version = rubygems_candidate_version package
-    installed_version = rubygems_installed_version package
-
-    if candidate_version.nil? and installed_version.nil?
-        return {
-            :__type__ => :missing_spec,
-            :package => package,
-        }
+    candidate_version = if remote
+      rubygems_candidate_version package
+    else
+      nil
     end
+
+    installed_version = rubygems_installed_version package
 
     {
         :__type__ => :info,
@@ -79,7 +78,8 @@ def rubygems_candidate_version package
 end
 
 def rubygems_installed_version package
-    result = Gem.source_index.find_name(package)
+    result = Gem::Specification.find_all_by_name package
+    #result = Gem::Specification.source_index.find_name package
     return nil if result.empty?
     result.first.version.version
 end
@@ -118,20 +118,23 @@ def homebrew_info_handler request
         raise MissingRequestKey.new 'package'
     end
 
-    begin
-        f = Formula.factory(package)
-    rescue FormulaUnavailableError
-        return {
-            :__type__ => :missing_package,
-            :package => package,
-        }
-    end
+    installed, candidate = homebrew_get_version package
 
     {
         :__type__ => :info,
-        :installed => f.installed_version,
-        :candidate => f.version,
+        :installed => installed,
+        :candidate => candidate,
     }
+end
+
+def homebrew_get_version(package)
+    begin
+        f = Formula.factory(package)
+    rescue FormulaUnavailableError
+        return [nil, nil]
+    end
+
+    [f.installed_version, f.version]
 end
 
 HANDLERS = {
