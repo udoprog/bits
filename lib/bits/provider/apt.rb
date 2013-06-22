@@ -43,7 +43,7 @@ module Bits
 
     def sync
       execute do
-        unless run [APT_GET, 'update']
+        unless run [APT_GET, 'update'], :superuser => true
           raise "Could not update apt provider"
         end
       end
