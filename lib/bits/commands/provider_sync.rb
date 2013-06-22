@@ -3,9 +3,9 @@ require 'bits/logging'
 require 'bits/exceptions'
 
 module Bits
-  define_command :sync_provider, \
-    :switch => 'sync-provider', \
-    :desc => "Sync a single provider" \
+  define_command :provider_sync, \
+    :switch => 'provider-sync', \
+    :desc => "Sync the specified provider" \
   do
     include Bits::Logging
 

@@ -70,7 +70,7 @@ module Bits
       candidate = get_candidate_version package_atom
       raise MissingPackage.new package_atom if candidate.nil?
       current = get_installed_version package_atom
-      return Bits::Package.new(package_atom, current, candidate)
+      Bits::Package.new package_atom, current, candidate
     end
 
     def install(package)

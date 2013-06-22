@@ -39,18 +39,33 @@ module Bits
         :compiled => ns[:compiled]
       }
 
-      repository = ns[:repository]
+      log.info "Running manifest: #{path}"
 
       unless depends.nil?
-        unless depends.kind_of? Array
-          raise ":depends should be a List"
+        begin
+          packages = resolve_packages depends, criteria
+        rescue Bits::MissingDependencies => e
+          puts "Missing Dependencies:"
+
+          e.missing.each do |m|
+            puts "  - #{m}"
+          end
+
+          return 1
         end
 
-        depends.each do |atom|
-          package = repository.find_package atom, criteria
+        packages.each do |package|
+          log.info "Installing package: #{package}"
           install_package package, force=ns[:force]
         end
+      else
+        log.info "No dependencies specified"
       end
+
+      return 0
     end
+
+    private
+
   end
 end

@@ -5,8 +5,8 @@ require 'bits/exceptions'
 require 'fileutils'
 
 module Bits
-  define_command :query_provider, \
-    :switch => 'query-provider', \
+  define_command :provider_query, \
+    :switch => 'provider-query', \
     :desc => "Query for an atom using the specified provider" \
   do
     include Bits::Logging

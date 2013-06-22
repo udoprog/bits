@@ -8,6 +8,20 @@ module Bits
   # be shown.
   class InvalidArgument < CommandException; end
 
+  # Indicate that some dependencies are missing
+  class MissingDependencies < CommandException
+    attr_reader :missing
+
+    def initialize(missing)
+      @missing = missing
+      super "Missing dependencies: #{missing_s}"
+    end
+
+    def missing_s
+      @missing.join ', '
+    end
+  end
+
   # Is raised when a package being requested does not exist.
   class MissingPackage < ProviderException; end
 

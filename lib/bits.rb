@@ -15,8 +15,8 @@ require 'bits/commands/show'
 require 'bits/commands/sync'
 require 'bits/commands/query'
 require 'bits/commands/manifest'
-require 'bits/commands/query_provider'
-require 'bits/commands/sync_provider'
+require 'bits/commands/provider_query'
+require 'bits/commands/provider_sync'
 
 require 'bits/provider/apt'
 require 'bits/provider/homebrew'
@@ -26,23 +26,18 @@ require 'bits/provider/rubygems'
 
 module Bits
   class << self
-    include Bits::Logging
-
     DEFAULT_COMMAND = 'manifest'
 
     def parse_options(args)
       ns = {}
 
-      subcommands = Hash.new
-      available_providers = Array.new
-      unavailable_providers = Array.new
+      avail_commands = Bits.commands.values.sort_by{|c| c.command_id.to_s}
+      avail_providers = Bits.providers.values.sort_by{|p| p.provider_id.to_s}
+
+      commands = Hash.new
 
       global = OptionParser.new do |global_opts|
         global_opts.banner = "Usage: bits <command> [options]"
-
-        global_opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
-          ns[:verbose] = v
-        end
 
         global_opts.on("-d", "--debug", "Enable debug logging") do |v|
           @log.level = Log4r::DEBUG
@@ -51,33 +46,27 @@ module Bits
         global_opts.separator ""
         global_opts.separator "Available commands:"
 
-        Bits.commands.values.sort_by{|c| c.command_id.to_s}.each do |klass|
+        avail_commands.each do |klass|
           global_opts.separator "  #{klass.switch}: #{klass.desc}"
-          subcommands[klass.switch] = klass
+          commands[klass.switch] = klass
         end
 
-        Bits.providers.values.sort_by{|p| p.provider_id.to_s}.each do |klass|
-          if klass.check
-            available_providers << klass
-          else
-            unavailable_providers << klass
-          end
-        end
+        global_opts.separator ""
 
         global_opts.separator "Providers:"
 
-        available_providers.each do |klass|
+        avail_providers.each do |klass|
           global_opts.separator "  #{klass.provider_id}: #{klass.desc}"
-        end
-
-        global_opts.separator "Unavailable providers:"
-        unavailable_providers.each do |klass|
-          global_opts.separator "  #{klass.provider_id}: #{klass.last_check_error}"
         end
       end
 
       global.order!
       command = ARGV.shift
+
+      checked_providers = avail_providers.select do |klass|
+        @log.debug "Checking provider: #{klass.provider_id}"
+        klass.check
+      end
 
       command = DEFAULT_COMMAND if command.nil?
 
@@ -86,7 +75,7 @@ module Bits
         exit 0
       end
 
-      if subcommands[command].nil? then
+      if commands[command].nil? then
         $stderr.puts "No such command: #{command}"
         $stderr.puts global.help
         exit 0
@@ -100,13 +89,18 @@ module Bits
       ns[:bits_dir] = bits_dir
       ns[:repo_dir] = repo_dir
 
-      providers = setup_providers available_providers, ns
+      providers = checked_providers.collect do |klass|
+        provider = klass.new ns
+        provider.setup
+        provider
+      end
+
       repository = Bits::Repository.new(providers, backend)
 
       ns[:providers] = providers
       ns[:repository] = repository
 
-      command_klass = subcommands[command]
+      command_klass = commands[command]
       command = command_klass.new ns
 
       command_parser = OptionParser.new do |opts|
@@ -134,16 +128,8 @@ module Bits
     def setup_logging
       log = Log4r::Logger.new 'Bits'
       log.outputters << Log4r::Outputter.stdout
-      log.level =  Log4r::INFO
+      log.level = Log4r::INFO
       log
-    end
-
-    def setup_providers(available_providers, ns)
-      available_providers.collect do |klass|
-        provider = klass.new ns
-        provider.setup
-        provider
-      end
     end
 
     def setup_backend(local_dir)
