@@ -15,7 +15,7 @@ module Bits::InstallerMixin
     atom = package.atom
 
     if package.installed? and not force
-      log.info "Already installed '#{atom}' using provider(s): #{package.providers_s}"
+      log.info "Already installed '#{atom}'"
       return
     end
 

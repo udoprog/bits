@@ -55,7 +55,6 @@ module Bits
         end
 
         packages.each do |package|
-          log.info "Installing package: #{package}"
           install_package package, force=ns[:force]
         end
       else
