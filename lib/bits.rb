@@ -19,6 +19,7 @@ require 'bits/commands/provider_sync'
 
 require 'bits/provider/apt'
 require 'bits/provider/homebrew'
+require 'bits/provider/npm'
 require 'bits/provider/portage'
 require 'bits/provider/python'
 require 'bits/provider/rubygems'

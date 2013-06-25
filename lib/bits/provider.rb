@@ -54,10 +54,11 @@ module Bits
       end
 
       desc = params[:desc] || "(no description)"
+      name = params[:name] || provider_id.to_s.capitalize
 
       klass = Class.new Provider do
         @provider_id = provider_id
-        @name = provider_id.to_s.capitalize
+        @name = name
         @desc = desc
 
         def to_s

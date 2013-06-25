@@ -5,7 +5,7 @@ require 'bits/external_interface'
 
 module Bits
   define_provider :homebrew, \
-    :desc => "Provides interface for Homebrew" \
+    :desc => "Provider for Homebrew" \
   do
     include Bits::Logging
     include Bits::CommandProvider

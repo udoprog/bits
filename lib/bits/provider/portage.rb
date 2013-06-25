@@ -10,7 +10,7 @@ require 'json'
 
 module Bits
   define_provider :portage, \
-    :desc => "Provides interface to Gentoo Portage" \
+    :desc => "Provider for Portage" \
   do
     include Bits::Logging
     include Bits::CommandProvider

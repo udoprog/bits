@@ -16,7 +16,8 @@ end
 
 module Bits
   define_provider :apt, \
-    :desc => "Provides interface for Debian APT" \
+    :name => "APT",
+    :desc => "Provider for the Advanced Packaging Tool (apt)" \
   do
     include Bits::Logging
     include Bits::CommandProvider

@@ -13,7 +13,7 @@ require "xmlrpc/client"
 
 module Bits
   define_provider :python,
-    :desc => "Provides interface for Python Packages" \
+    :desc => "Provider for Python Packaging" \
   do
     include Bits::Logging
     include Bits::CommandProvider

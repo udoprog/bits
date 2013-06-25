@@ -1,0 +1,188 @@
+#!/usr/bin/env node
+// vim: ft=javascript
+
+var fs = require('fs'),
+    util = require('util');
+
+var npm = null;
+var npm_deferred = [];
+var dataFd = process.argv.length > 2 ? parseInt(process.argv[2]) : 1;
+
+if (!dataFd) {
+    throw new Error("Unable to determine dataFd");
+}
+
+if (process.env['NODE_PATH'] === undefined) {
+    fs.writeSync(2, "NODE_PATH is not defined and is required for the node interface to work!\n");
+}
+
+try {
+    var module = require('npm');
+
+    npm = {
+      loaded: false,
+      conf: {},
+      module: module,
+      deferred: [],
+    }
+} catch(ex) { }
+
+if (npm) {
+    npm.module.load(npm.conf, function(er) {
+        if (er) {
+            console.stderr("Problem loading npm");
+            console.stderr(er.stack);
+            return;
+        }
+
+        npm.loaded = true;
+
+        if (npm_deferred.length > 0) {
+            var i = 0;
+
+            for (var i = 0; i < npm_deferred.length; i++) {
+                item = npm_deferred[i];
+                callback = item[0];
+                callback(item[1], item[2]);
+            }
+
+            npm_deferred = [];
+        }
+    });
+}
+
+var RequestError = function (msg, constr) {
+  Error.captureStackTrace(this, constr || this)
+  this.message = msg || 'Error'
+}
+
+util.inherits(RequestError, Error)
+
+RequestError.prototype.name = 'Request Error'
+
+function ping_handler(request, callback) {
+    var capabilities = new Array();
+
+    if (npm) {
+        capabilities[capabilities.length] = 'npm'
+    }
+
+    callback({
+        '__type__': 'pong',
+        'capabilities': capabilities,
+    })
+}
+
+function npm_view(request, callback) {
+    if (!npm) {
+        throw new RequestError("npm capability not available");
+    }
+
+    if (!npm.loaded) {
+        npm_deferred[npm_deferred.length] = [npm_view, request, callback]
+        return;
+    }
+
+    if (!request['package']) {
+        throw new RequestError("Missing key 'package'");
+    }
+
+    var pkg = request['package']
+
+    npm.module.registry.get(pkg, 600, function (er, data) {
+        if (er) {
+            callback({
+                "__type__": "error",
+                "text": er.toString(),
+            });
+
+            return;
+        }
+
+        dist_tags = data['dist-tags'];
+
+        callback({
+            "__type__": "info",
+            "candidate": dist_tags['latest'],
+            "installed": null,
+        })
+    })
+}
+
+var handlers = {
+    "ping": ping_handler,
+    "npm_view": npm_view,
+};
+
+function handle_request(line, callback) {
+    try {
+        request = JSON.parse(line.toString());
+    } catch (ex) {
+        throw new RequestError('Could not decode request, expected type: json');
+    }
+
+    request_type = request['__type__']
+
+    if (!request_type) {
+        throw new RequestError("Missing '__type__' in request");
+    }
+
+    handler = handlers[request_type]
+
+    if (!handler) {
+        throw new RequestError("No handler for type '" + request_type + "'");
+    }
+
+    return handler(request, callback);
+}
+
+function guarded_handle_request(line, callback) {
+    try {
+        return handle_request(line, callback);
+    } catch(ex) {
+        if (!(ex instanceof RequestError)) {
+            throw ex;
+        }
+
+        callback({
+            "__type__": "error",
+            "text": ex.toString(),
+        });
+    }
+}
+
+var util = require('util');
+
+var inputBuffer = new Buffer([]);
+
+process.stdin.on('data', function(data) {
+    // offset in the current buffer.
+    var offset = 0;
+
+    for (var index = 0; index < data.length; index++) {
+        // 10 = \n (newline)
+        if (data[index] !== 10) {
+            continue;
+        }
+
+        var slice_length = index - offset;
+        var current = data.slice(offset, slice_length);
+        var line = Buffer.concat([inputBuffer, current]);
+
+        inputBuffer = data.slice(index + 1, data.length - offset);
+
+        offset = index;
+
+        // Assume stdin always providers utf-8 encoded data.
+        line = line.toString('utf-8');
+        this.emit('line', line);
+    }
+});
+
+process.stdin.on('line', function(line) {
+    guarded_handle_request(line, function(result) {
+        response = JSON.stringify(result);
+        responseBuffer = new Buffer(response + "\n", 'utf-8');
+        fs.write(dataFd, responseBuffer, 0, responseBuffer.length)
+    });
+});

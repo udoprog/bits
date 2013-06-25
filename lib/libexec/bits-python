@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-import sys
 import json
+import os
+import sys
 
 try:
     import pkg_resources
@@ -137,6 +138,12 @@ def guarded_handle_request(line):
 
 
 def main(args):
+    data_f = sys.stdout
+
+    if len(args) > 0:
+        data_fd = int(args[0])
+        data_f = os.fdopen(data_fd, 'w')
+
     try:
         while True:
             line = sys.stdin.readline()
@@ -145,8 +152,8 @@ def main(args):
                 break
 
             response = guarded_handle_request(line)
-            print >>sys.stdout, json.dumps(response)
-            sys.stdout.flush()
+            print >>data_f, json.dumps(response)
+            data_f.flush()
     except KeyboardInterrupt:
         pass
 

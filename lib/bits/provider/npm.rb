@@ -5,9 +5,9 @@ require 'bits/provider_reporting'
 require 'bits/cache'
 
 module Bits
-  define_provider :rubygems, \
-    :name => 'RubyGems',
-    :desc => "Provider for RubyGems" \
+  define_provider :npm, \
+    :name => 'NPM',
+    :desc => "Provider for Node Packaged Modules (npm)" \
   do
     include Bits::Logging
     include Bits::CommandProvider
@@ -15,46 +15,30 @@ module Bits
     include Bits::ProviderReporting
     include Bits::Cache
 
-    GEM = 'gem'
+    NPM = 'npm'
 
     def self.check
-      unless self.setup_interface :ruby, :capabilities => [:rubygems]
+      unless self.setup_interface :node, :capabilities => [:npm]
         check_error "Could not setup required interface"
         return false
       end
 
-      log.debug "rubygems is available"
+      log.debug "npm is available"
       true
     end
 
     def setup
-      @client = interfaces[:ruby]
+      @client = interfaces[:node]
       @cache = setup_cache ns[:bits_dir], provider_id
     end
 
     def sync
-      type, response = @client.request :rubygems_candidates
-
-      unless type == :candidates
-        raise "Expected rubygems_candidate response but got: #{type}"
-      end
-
-      candidates = response['candidates']
-
-      log.info "Syncing #{candidates.size} gems"
-
-      cache = candidates.inject({}){|h, i| h[i['atom']] = i; h}
-
-      @cache.set cache
-      @cache.save
+      log.warn "NPM does not know how to sync yet"
     end
 
     def query(atom)
-      candidate = @cache[atom]
-
-      type, info = @client.request :rubygems_info, \
-        :package => atom, \
-        :remote => candidate.nil?
+      type, info = @client.request :npm_view, \
+        :package => atom
 
       raise MissingPackage.new atom if type == :missing_package
       raise "Expected info response but got: #{type}" unless type == :info
@@ -72,7 +56,7 @@ module Bits
 
     def install(package)
       execute do
-        unless run [GEM, 'install', package.atom]
+        unless run [NPM, 'install', package.atom]
           raise "Could not install package '#{package.atom}'"
         end
       end
@@ -80,7 +64,7 @@ module Bits
 
     def remove(package)
       execute do
-        unless run [GEM, 'uninstall', package.atom]
+        unless run [NPM, 'uninstall', package.atom]
           raise "Could not remove package '#{package.atom}'"
         end
       end

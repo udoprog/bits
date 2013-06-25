@@ -184,10 +184,17 @@ rescue RequestError => e
 end
 
 def main
+    data_fd = $stdout
+
+    if ARGV.size > 0
+      data_fd = ARGV[0].to_i
+      data_fd = File.new data_fd, 'w'
+    end
+
     $stdin.each do |line|
         response = guarded_handle_request line
-        $stdout.puts JSON.dump response
-        $stdout.flush
+        data_fd.puts JSON.dump response
+        data_fd.flush
     end
 
     return 0

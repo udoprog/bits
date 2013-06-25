@@ -10,14 +10,15 @@ module Bits
 
       attr_reader :id, :capabilities, :exitstatus
 
-      def initialize(id, args, stdin, stdout, pid)
+      def initialize(id, args, stdin, data_f, pid)
         @id = id
         @args = args
         @stdin = stdin
-        @stdout = stdout
+        @data_f = data_f
         @pid = pid
         @capabilities = []
         @exitstatus = nil
+        @timeout = 2
       end
 
       # end the child process by closing stdin.
@@ -31,20 +32,32 @@ module Bits
       end
 
       def ping
-        begin
-          type, response = request :ping
+        response_type, response = begin
+          timeout @timeout do
+            request :ping
+          end
+        rescue Timeout::Error
+          log.debug "Timeout when pinging interface"
+          nil
         rescue
           log.debug "problem while pinging interface '#{@id}': #{$!}"
-          return nil
+          nil
         end
 
-        raise "Expected pong but got #{type}" unless type == :pong
+        if response_type.nil?
+          return
+        end
+
+        unless response_type == :pong
+          raise "Expected pong but got #{response_type}"
+        end
+
         @capabilities = (response['capabilities'] || []).map(&:to_sym)
         return true
       end
 
-      def request(type, command={})
-        command[:__type__] = type
+      def request(request_type, command={})
+        command[:__type__] = request_type
 
         write JSON.dump(command)
         data = read
@@ -64,31 +77,32 @@ module Bits
       end
 
       def close
-        return if @stdin.nil? and @stdout.nil?
         reap_child
       end
 
       private
 
       def reap_child
-        return unless @exitstatus.nil?
+        unless @exitstatus.nil?
+          return
+        end
 
-        log.debug "Reaping interface: #{id}"
-        return unless @exitstatus.nil?
-        log.debug "stdin=#{@stdin.inspect} stdout=#{@stdout.inspect}"
+        log.debug "Killing interface '#{id}' (#{info_s})"
 
         Process::kill "INT", @pid
 
-        log.debug "Waiting for interface to exit: #{id}"
+        log.debug "Waiting for interface '#{id}' to shutdown"
 
         # don't hang since write might have reaped it already.
         Process.wait @pid
 
         @exitstatus = $?.exitstatus
+
+        @stdin.close unless @stdin.closed?
+        @data_f.close unless @data_f.closed?
       end
 
       def write(data)
-        return if @stdin.nil?
         @stdin.puts data
         @stdin.flush
       rescue
@@ -98,11 +112,18 @@ module Bits
 
       # read or no-op if it has been closed.
       def read
-        return if @stdout.nil?
-        @stdout.gets
+        @data_f.gets
       rescue
         reap_child
         raise
+      end
+
+      def info_s
+        "pid=#{@pid} stdin=#{@stdin.fileno} data_fd=#{@data_f.fileno}"
+      end
+
+      def to_s
+        "<Interface '#{@id}' info:#{info_s}>"
       end
     end
 
@@ -127,7 +148,7 @@ module Bits
 
         unless missing_capabilities.empty?
           missing_s = missing_capabilities.join ', '
-          log.debug "Interface '#{id}' is available, but is missing capabilities: #{missing_s}"
+          log.debug "Interface '#{id}' is available, but misses capabilities: #{missing_s}"
           return false
         end
 
@@ -147,21 +168,25 @@ module Bits
 
         command = [libexec_path]
 
-        stdout_r, stdout_w = IO.pipe
+        # data file descriptor.
+        data_r, data_w = IO.pipe
         stdin_r, stdin_w = IO.pipe
 
         pid = fork do
           stdin_w.close
-          stdout_r.close
+          data_r.close
+
+          # add an extra argument telling the child process which file
+          # descriptor to use when writing data.
+          command << data_w.fileno.to_s
 
           $stdin.reopen stdin_r
-          $stdout.reopen stdout_w
 
           begin
             exec(*command)
           rescue Errno::ENOENT
-            $stdout.close
-            $stdin.close
+            stdin_r.close
+            data_w.close
             exit ENOENT
           end
 
@@ -169,9 +194,9 @@ module Bits
         end
 
         stdin_r.close
-        stdout_w.close
+        data_w.close
 
-        interface = Interface.new(id, command, stdin_w, stdout_r, pid)
+        interface = Interface.new(id, command, stdin_w, data_r, pid)
 
         if not interface.ping
           interface.close
