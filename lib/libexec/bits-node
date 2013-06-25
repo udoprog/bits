@@ -5,16 +5,6 @@ var fs = require('fs'),
     util = require('util');
 
 var npm = null;
-var npm_deferred = [];
-var dataFd = process.argv.length > 2 ? parseInt(process.argv[2]) : 1;
-
-if (!dataFd) {
-    throw new Error("Unable to determine dataFd");
-}
-
-if (process.env['NODE_PATH'] === undefined) {
-    fs.writeSync(2, "NODE_PATH is not defined and is required for the node interface to work!\n");
-}
 
 try {
     var module = require('npm');
@@ -23,51 +13,39 @@ try {
       loaded: false,
       conf: {},
       module: module,
-      deferred: [],
     }
-} catch(ex) { }
+} catch(ex) {
+}
 
-if (npm) {
+function load_npm(load_callback, request, callback) {
     npm.module.load(npm.conf, function(er) {
+        // on error stop trying to load npm.
         if (er) {
-            console.stderr("Problem loading npm");
-            console.stderr(er.stack);
-            return;
+            console.error("Unable to load npm");
+            console.error(er.stack);
+            npm = null;
+        }
+        else {
+            npm.loaded = true;
         }
 
-        npm.loaded = true;
-
-        if (npm_deferred.length > 0) {
-            var i = 0;
-
-            for (var i = 0; i < npm_deferred.length; i++) {
-                item = npm_deferred[i];
-                callback = item[0];
-                callback(item[1], item[2]);
-            }
-
-            npm_deferred = [];
-        }
+        load_callback(request, callback);
     });
 }
-
-var RequestError = function (msg, constr) {
-  Error.captureStackTrace(this, constr || this)
-  this.message = msg || 'Error'
-}
-
-util.inherits(RequestError, Error)
-
-RequestError.prototype.name = 'Request Error'
 
 function ping_handler(request, callback) {
     var capabilities = new Array();
 
     if (npm) {
+        if (!npm.loaded) {
+            load_npm(ping_handler, request, callback);
+            return;
+        }
+
         capabilities[capabilities.length] = 'npm'
     }
 
-    callback({
+    callback.result({
         '__type__': 'pong',
         'capabilities': capabilities,
     })
@@ -75,38 +53,80 @@ function ping_handler(request, callback) {
 
 function npm_view(request, callback) {
     if (!npm) {
-        throw new RequestError("npm capability not available");
+        callback.error("npm capability not available");
+        return;
     }
 
     if (!npm.loaded) {
-        npm_deferred[npm_deferred.length] = [npm_view, request, callback]
+        callback.error("npm capability not loaded");
         return;
     }
 
     if (!request['package']) {
-        throw new RequestError("Missing key 'package'");
+        callback.error("Missing key 'package'");
+        return;
     }
 
-    var pkg = request['package']
+    var pkg = request['package'];
+    var candidate = null;
+    var installed = null;
 
-    npm.module.registry.get(pkg, 600, function (er, data) {
+    function submit_result() {
+        callback.result({
+            "__type__": "info",
+            "candidate": candidate,
+            "installed": installed
+        });
+    }
+
+    function handle_installed(er, data, lite) {
         if (er) {
-            callback({
-                "__type__": "error",
-                "text": er.toString(),
-            });
-
+            callback.error(er.toString());
             return;
         }
 
-        dist_tags = data['dist-tags'];
+        if (data._found > 1) {
+            callback.error("Too many results for candidate");
+            return;
+        }
 
-        callback({
-            "__type__": "info",
-            "candidate": dist_tags['latest'],
-            "installed": null,
-        })
-    })
+        if (data._found === 1) {
+            pkg_data = data.dependencies[pkg];
+
+            if (!pkg_data) {
+                callback.error("No package data matching request");
+                return;
+            }
+
+            // global
+            installed = pkg_data.version;
+        }
+
+        submit_result();
+    }
+
+    function handle_candidate(er, data) {
+        if (er) {
+            if (er.code === 'E404') {
+                submit_result();
+                return;
+            }
+
+            callback.error(er.toString());
+            return;
+        }
+
+        var dist_tags = data['dist-tags'];
+
+        // global
+        candidate = dist_tags['latest'];
+
+        npm.module.ls(pkg, handle_installed);
+    }
+
+    // TODO: write a parallel version of this. However keeping the state around
+    // is a PITA.
+    npm.module.registry.get(pkg, 600, handle_candidate);
 }
 
 var handlers = {
@@ -118,71 +138,83 @@ function handle_request(line, callback) {
     try {
         request = JSON.parse(line.toString());
     } catch (ex) {
-        throw new RequestError('Could not decode request, expected type: json');
+        callback.error('Could not decode request, expected type: json');
+        return;
     }
 
     request_type = request['__type__']
 
     if (!request_type) {
-        throw new RequestError("Missing '__type__' in request");
+        callback.error("Missing '__type__' in request");
+        return;
     }
 
     handler = handlers[request_type]
 
     if (!handler) {
-        throw new RequestError("No handler for type '" + request_type + "'");
+        callback.error("No handler for type '" + request_type + "'");
+        return;
     }
 
     return handler(request, callback);
 }
 
-function guarded_handle_request(line, callback) {
-    try {
-        return handle_request(line, callback);
-    } catch(ex) {
-        if (!(ex instanceof RequestError)) {
-            throw ex;
-        }
+(function() {
+    var dataFd = process.argv.length > 2 ? parseInt(process.argv[2]) : 1;
 
-        callback({
-            "__type__": "error",
-            "text": ex.toString(),
-        });
+    if (!dataFd) {
+        throw new Error("Unable to determine dataFd");
     }
-}
 
-var util = require('util');
-
-var inputBuffer = new Buffer([]);
-
-process.stdin.on('data', function(data) {
-    // offset in the current buffer.
-    var offset = 0;
-
-    for (var index = 0; index < data.length; index++) {
-        // 10 = \n (newline)
-        if (data[index] !== 10) {
-            continue;
-        }
-
-        var slice_length = index - offset;
-        var current = data.slice(offset, slice_length);
-        var line = Buffer.concat([inputBuffer, current]);
-
-        inputBuffer = data.slice(index + 1, data.length - offset);
-
-        offset = index;
-
-        // Assume stdin always providers utf-8 encoded data.
-        line = line.toString('utf-8');
-        this.emit('line', line);
+    if (process.env['NODE_PATH'] === undefined) {
+        fs.writeSync(2, "NODE_PATH is not defined and is required for the node interface to work!\n");
     }
-});
 
-process.stdin.on('line', function(line) {
-    guarded_handle_request(line, function(result) {
-        response = JSON.stringify(result);
-        responseBuffer = new Buffer(response + "\n", 'utf-8');
-        fs.write(dataFd, responseBuffer, 0, responseBuffer.length)
+    var inputBuffer = new Buffer([]);
+
+    process.stdin.on('data', function(data) {
+        // offset in the current buffer.
+        var offset = 0;
+
+        for (var index = 0; index < data.length; index++) {
+            // 10 = \n (newline)
+            if (data[index] !== 10) {
+                continue;
+            }
+
+            var slice_length = index - offset;
+            var current = data.slice(offset, slice_length);
+            var line = Buffer.concat([inputBuffer, current]);
+
+            inputBuffer = data.slice(index + 1, data.length - offset);
+
+            offset = index;
+
+            // Assume stdin always providers utf-8 encoded data.
+            line = line.toString('utf-8');
+            this.emit('line', line);
+        }
     });
-});
+
+    function write_response(response) {
+        response = JSON.stringify(response);
+        responseBuffer = new Buffer(response + "\n", 'utf-8');
+        fs.write(dataFd, responseBuffer, 0, responseBuffer.length);
+    }
+
+    process.stdin.on('line', function(line) {
+        callback = {
+            result: function(response) {
+                write_response(response);
+            },
+            error: function(text) {
+                write_response({
+                    "__type__": "error",
+                    "text": text,
+                });
+            }
+        };
+
+        handle_request(line, callback);
+    });
+})();
