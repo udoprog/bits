@@ -6,14 +6,16 @@ var fs = require('fs'),
 
 var npm = null;
 
+var SIGNATURE = "BITS-INTERFACE 1.0";
+
 try {
     var module = require('npm');
 
     npm = {
       loaded: false,
       conf: {},
-      module: module,
-    }
+      module: module
+    };
 } catch(ex) {
 }
 
@@ -34,7 +36,7 @@ function load_npm(load_callback, request, callback) {
 }
 
 function ping_handler(request, callback) {
-    var capabilities = new Array();
+    var capabilities = [];
 
     if (npm) {
         if (!npm.loaded) {
@@ -42,13 +44,13 @@ function ping_handler(request, callback) {
             return;
         }
 
-        capabilities[capabilities.length] = 'npm'
+        capabilities[capabilities.length] = 'npm';
     }
 
     callback.result({
         '__type__': 'pong',
-        'capabilities': capabilities,
-    })
+        'capabilities': capabilities
+    });
 }
 
 function npm_view(request, callback) {
@@ -62,12 +64,12 @@ function npm_view(request, callback) {
         return;
     }
 
-    if (!request['package']) {
+    if (!request.package) {
         callback.error("Missing key 'package'");
         return;
     }
 
-    var pkg = request['package'];
+    var pkg = request.package;
     var candidate = null;
     var installed = null;
 
@@ -119,7 +121,7 @@ function npm_view(request, callback) {
         var dist_tags = data['dist-tags'];
 
         // global
-        candidate = dist_tags['latest'];
+        candidate = dist_tags.latest;
 
         npm.module.ls(pkg, handle_installed);
     }
@@ -131,7 +133,7 @@ function npm_view(request, callback) {
 
 var handlers = {
     "ping": ping_handler,
-    "npm_view": npm_view,
+    "npm_view": npm_view
 };
 
 function handle_request(line, callback) {
@@ -142,14 +144,14 @@ function handle_request(line, callback) {
         return;
     }
 
-    request_type = request['__type__']
+    request_type = request.__type__;
 
     if (!request_type) {
         callback.error("Missing '__type__' in request");
         return;
     }
 
-    handler = handlers[request_type]
+    handler = handlers[request_type];
 
     if (!handler) {
         callback.error("No handler for type '" + request_type + "'");
@@ -160,13 +162,13 @@ function handle_request(line, callback) {
 }
 
 (function() {
-    var dataFd = process.argv.length > 2 ? parseInt(process.argv[2]) : 1;
+    var dataFd = process.argv.length > 2 ? parseInt(process.argv[2], 10) : 1;
 
     if (!dataFd) {
         throw new Error("Unable to determine dataFd");
     }
 
-    if (process.env['NODE_PATH'] === undefined) {
+    if (process.env.NODE_PATH === undefined) {
         fs.writeSync(2, "NODE_PATH is not defined and is required for the node interface to work!\n");
     }
 
@@ -210,11 +212,14 @@ function handle_request(line, callback) {
             error: function(text) {
                 write_response({
                     "__type__": "error",
-                    "text": text,
+                    "text": text
                 });
             }
         };
 
         handle_request(line, callback);
     });
+
+    var hello = new Buffer(SIGNATURE + "\n");
+    fs.writeSync(dataFd, hello, 0, hello.length);
 })();

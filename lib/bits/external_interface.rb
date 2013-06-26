@@ -6,6 +6,8 @@ require 'json'
 module Bits
   module ExternalInterface
     class Interface
+      SIGNATURE = 'BITS-INTERFACE 1.0'
+
       include Bits::Logging
 
       attr_reader :id, :capabilities, :exitstatus
@@ -32,27 +34,42 @@ module Bits
       end
 
       def ping
-        response_type, response = begin
+        signature = begin
+          timeout @timeout do
+            read
+          end
+        rescue Timeout::Error
+          log.warn "Timeout when reading signature '#{id}'"
+          return false
+        end
+
+        signature = signature.rstrip
+
+        if signature != SIGNATURE
+          log.debug "Invalid signature for interface '#{id}'"
+          return false
+        end
+
+        response_data = begin
           timeout @timeout do
             request :ping
           end
         rescue Timeout::Error
-          log.debug "Timeout when pinging interface"
-          nil
-        rescue
-          log.debug "problem while pinging interface '#{@id}': #{$!}"
+          log.warn "Timeout when pinging interface"
           nil
         end
 
-        if response_type.nil?
-          return
+        if response_data.nil?
+          return false
         end
+
+        response_type, content = response_data
 
         unless response_type == :pong
           raise "Expected pong but got #{response_type}"
         end
 
-        @capabilities = (response['capabilities'] || []).map(&:to_sym)
+        @capabilities = (content['capabilities'] || []).map(&:to_sym)
         return true
       end
 
