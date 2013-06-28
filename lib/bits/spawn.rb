@@ -1,25 +1,11 @@
 require 'bits/logging'
 
 module Bits
-  ENOENT = 0x7f
-  PIPE = 0x01
-  NULL = 0x02
-
-  DEV_NULL = '/dev/null'
-
   class << self
-    def handle_exit(pid, fd_cache, ignore_exitcode)
-      fd_cache.each do |key, fd|
-        fd.close
-      end
-
+    def handle_exit(pid, ignore_exitcode)
       Process.waitpid pid
 
       exitstatus = $?.exitstatus
-
-      if exitstatus == ENOENT then
-        raise Errno::ENOENT
-      end
 
       if not ignore_exitcode and exitstatus != 0 then
         raise "Bad exit status: #{exitstatus}"
@@ -28,62 +14,57 @@ module Bits
       exitstatus
     end
 
-    def setup_file(type, global, fd_cache)
-      case type
-        when PIPE then IO.pipe
-        when NULL then (fd_cache[:null] ||= File.open(DEV_NULL, 'w'))
-        else type
+    def spawn_check_errno(errno_r)
+      while true
+        begin
+          errno_data = errno_r.read(4)
+        rescue Errno::EAGAIN, Errno::EINTR
+          next
+        rescue SystemCallError
+          break
+        end
+
+        if errno_data
+          errno = errno_data.unpack('i')[0]
+          raise SystemCallError.new('Failed to execute command', errno)
+        end
+
+        break
       end
     end
 
-    def handle_child_file(type, global, fds)
-      case type
-      when PIPE then
-        fds[0].close
-        global.reopen fds[1]
-      else
-        global.reopen fds unless fds === global
+    def spawn_exec(command, errno_w)
+      begin
+        exec(*command)
+      rescue SystemCallError => e
+        errno_w.write [e.errno].pack('i')
       end
+
+      exit 1
     end
 
-    def handle_parent_file(type, fds)
-      case type
-      when PIPE then
-        fds[1].close
-        fds[0]
-      else fds
-      end
-    end
-
-    def spawn(args, params={})
-      fd_cache = {}
-
-      stdout = (params[:stdout] || $stdout)
-      stderr = (params[:stderr] || $stderr)
+    def spawn(command, params={})
+      stdout = params[:stdout]
+      stderr = params[:stderr]
       ignore_exitcode = params[:ignore_exitcode] || false
 
-      out = setup_file stdout, $stdout, fd_cache
-      err = setup_file stderr, $stderr, fd_cache
+      errno_r, errno_w = IO.pipe
 
       pid = fork do
-        handle_child_file stdout, $stdout, out
-        handle_child_file stderr, $stderr, err
+        errno_r.close
+        errno_w.close_on_exec = true
 
-        begin
-          exec(*args)
-        rescue Errno::ENOENT
-          exit ENOENT
-        rescue
-          exit 1
-        end
+        $stdout.reopen stdout unless stdout.nil?
+        $stderr.reopen stderr unless stderr.nil?
+
+        spawn_exec command, errno_w
       end
 
-      out = handle_parent_file stdout, out
-      err = handle_parent_file stderr, err
+      errno_w.close
 
-      return handle_exit pid, fd_cache, ignore_exitcode unless block_given?
-      yield [out, err]
-      handle_exit pid, fd_cache, ignore_exitcode
+      spawn_check_errno errno_r
+
+      handle_exit pid, ignore_exitcode
     end
   end
 end

@@ -30,4 +30,17 @@ module Bits
 
   # Is raised when a package being requested does not exist.
   class MissingProvidedPackage < ProviderException; end
+
+  # Is raised when a spawn command fails early.
+  class SpawnException < Exception
+    attr_reader :errno
+
+    def initialize(message, errno=0)
+      super message
+      @errno = errno
+    end
+  end
+
+  # Is raised when commlunicating with an interface fails.
+  class InterfaceException < Exception; end
 end

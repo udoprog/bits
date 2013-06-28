@@ -4,8 +4,6 @@ import json
 import os
 import sys
 
-SIGNATURE = "BITS-INTERFACE 1.0"
-
 try:
     import pkg_resources
     has_pkg_resources = True
@@ -145,8 +143,6 @@ def main(args):
     if len(args) > 0:
         data_fd = int(args[0])
         data_f = os.fdopen(data_fd, 'w')
-
-    print >>data_f, SIGNATURE
 
     try:
         while True:

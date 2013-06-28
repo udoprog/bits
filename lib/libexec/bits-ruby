@@ -4,7 +4,6 @@ require 'rubygems'
 require 'json'
 
 HAS_RUBYGEMS = true
-SIGNATURE = "BITS-INTERFACE 1.0"
 
 $load_path = Array.new $:
 

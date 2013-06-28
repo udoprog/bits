@@ -1,13 +1,20 @@
 require 'bits/logging'
+require 'bits/spawn'
+require 'bits/exceptions'
 
 require 'rubygems'
 require 'json'
+require 'fcntl'
 
 module Bits
+  EXTERNAL_EXECUTABLES = {
+    :python => 'python',
+    :ruby => 'ruby',
+    :node => 'node',
+  }
+
   module ExternalInterface
     class Interface
-      SIGNATURE = 'BITS-INTERFACE 1.0'
-
       include Bits::Logging
 
       attr_reader :id, :capabilities, :exitstatus
@@ -34,22 +41,6 @@ module Bits
       end
 
       def ping
-        signature = begin
-          timeout @timeout do
-            read
-          end
-        rescue Timeout::Error
-          log.warn "Timeout when reading signature '#{id}'"
-          return false
-        end
-
-        signature = signature.rstrip
-
-        if signature != SIGNATURE
-          log.debug "Invalid signature for interface '#{id}'"
-          return false
-        end
-
         response_data = begin
           timeout @timeout do
             request :ping
@@ -79,7 +70,9 @@ module Bits
         write JSON.dump(command)
         data = read
 
-        raise "empty response" if data.nil?
+        if data.nil?
+          raise InterfaceException.new 'Empty response'
+        end
 
         response = JSON.load(data)
 
@@ -87,7 +80,7 @@ module Bits
 
         if response_type == :error
           error_text = response['text']
-          raise "Error in interface: #{error_text}"
+          raise InterfaceException.new "Error in interface: #{error_text}"
         end
 
         [response_type, response]
@@ -176,42 +169,83 @@ module Bits
 
       private
 
+      def spawn_libexec_path(name)
+        dir = File.dirname(File.expand_path(__FILE__))
+        path = File.join dir, '..', 'libexec', name
+        File.expand_path path
+      end
+
+      # Read and optionally raise an exception if the file descriptor
+      # reports error.
+      def spawn_read_error(errno_r)
+        while true
+          begin
+            errno_data = errno_r.read(4)
+          rescue SystemCallError => e
+            if e.errno != Errno::EAGAIN and e.errno != Errno::EINTR
+              break
+            end
+
+            next
+          end
+
+          if errno_data
+            errno = errno_data.unpack 'i'
+            raise SpawnException.new('Unable to execute command', errno)
+          end
+
+          break
+        end
+      end
+
       def spawn_interface(id)
         unless interfaces[id].nil?
           return interfaces[id]
         end
 
-        libexec_path = path_to_libexec "bits-#{id}"
+        executable = EXTERNAL_EXECUTABLES[id]
 
-        command = [libexec_path]
+        if executable.nil?
+          raise "No executable defined for provider '#{id}'"
+        end
 
-        # data file descriptor.
+        libexec_path = spawn_libexec_path "bits-#{id}"
+
+        unless File.file? libexec_path
+          raise "No such file: #{libexec_path}"
+        end
+
+        command = [executable, libexec_path]
+
+        # Data file descriptor.
         data_r, data_w = IO.pipe
+        # Stdin
         stdin_r, stdin_w = IO.pipe
+        # Errno reporting
+        errno_r, errno_w = IO.pipe
 
         pid = fork do
-          stdin_w.close
-          data_r.close
+          [errno_r, stdin_w, data_r].each(&:close)
+
+          $stdin.reopen stdin_r
+
+          errno_w.close_on_exec = true
 
           # add an extra argument telling the child process which file
           # descriptor to use when writing data.
           command << data_w.fileno.to_s
 
-          $stdin.reopen stdin_r
-
-          begin
-            exec(*command)
-          rescue Errno::ENOENT
-            stdin_r.close
-            data_w.close
-            exit ENOENT
-          end
-
-          exit 1
+          Bits::spawn_exec command, errno_w
         end
 
-        stdin_r.close
-        data_w.close
+        [errno_w, stdin_r, data_w].each(&:close)
+
+        begin
+          Bits::spawn_check_errno errno_r
+        rescue Errno::ENOENT
+          log.debug "Unable to execute command '#{executable}' for provider '#{id}'"
+          return nil
+        end
 
         interface = Interface.new(id, command, stdin_w, data_r, pid)
 
@@ -221,10 +255,6 @@ module Bits
         end
 
         interfaces[id] = interface
-      end
-
-      def path_to_libexec(name)
-        File.join File.dirname(File.expand_path(__FILE__)), File.join('..', 'libexec', name)
       end
     end
 

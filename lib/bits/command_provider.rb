@@ -7,11 +7,13 @@ module Bits
   module CommandProvider
     module ClassMethods
       def check_command(command, name)
-        begin
-          exit_code = Bits.spawn command, :stdout => NULL
-        rescue Errno::ENOENT
-          log.debug "#{name} command not available"
-          return false
+        exit_code = File.open '/dev/null', 'w' do |dev_null|
+          begin
+            Bits.spawn command, :stdout => dev_null, :stderr => dev_null
+          rescue Errno::ENOENT
+            log.debug "#{name} command not available"
+            return false
+          end
         end
 
         if exit_code != 0 then

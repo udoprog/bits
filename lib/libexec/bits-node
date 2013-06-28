@@ -6,8 +6,6 @@ var fs = require('fs'),
 
 var npm = null;
 
-var SIGNATURE = "BITS-INTERFACE 1.0";
-
 try {
     var module = require('npm');
 
@@ -174,7 +172,13 @@ function handle_request(line, callback) {
 
     var inputBuffer = new Buffer([]);
 
-    process.stdin.on('data', function(data) {
+    function write_response(response) {
+        response = JSON.stringify(response);
+        responseBuffer = new Buffer(response + "\n", 'utf-8');
+        fs.write(dataFd, responseBuffer, 0, responseBuffer.length);
+    }
+
+    function process_data(data) {
         // offset in the current buffer.
         var offset = 0;
 
@@ -196,15 +200,9 @@ function handle_request(line, callback) {
             line = line.toString('utf-8');
             this.emit('line', line);
         }
-    });
-
-    function write_response(response) {
-        response = JSON.stringify(response);
-        responseBuffer = new Buffer(response + "\n", 'utf-8');
-        fs.write(dataFd, responseBuffer, 0, responseBuffer.length);
     }
 
-    process.stdin.on('line', function(line) {
+    function process_line(line) {
         callback = {
             result: function(response) {
                 write_response(response);
@@ -218,8 +216,8 @@ function handle_request(line, callback) {
         };
 
         handle_request(line, callback);
-    });
+    }
 
-    var hello = new Buffer(SIGNATURE + "\n");
-    fs.writeSync(dataFd, hello, 0, hello.length);
+    process.stdin.on('data', process_data);
+    process.stdin.on('line', process_line);
 })();
